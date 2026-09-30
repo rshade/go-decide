@@ -27,13 +27,13 @@ not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 - [ ] #7 Fast-path pre-screen for the decide skill [M]
 - [ ] #8 Batching and pseudonymized identifiers [M]
 - [ ] #9 Spike: does the fast path hold on real past decisions? (timebox 1d)
-- [ ] #10 Spike: do round-2 findings hold on real FinFocus output? (timebox 1d)
 - [ ] #11 Spike: keep kataras/jev or write our own client? (timebox 2h)
 
 ## Completed Milestones
 
 ### 2026-Q3
 
+- [x] #10 `spike`: FinFocus scoring belongs in finfocus repos. Closed 2026-09-29.
 - Research probes: recommendation scoring, duplicate detection, decision
   spike, client survey (in `docs/`, uncommitted)
 
