@@ -55,6 +55,12 @@ Only `Decided` has a `Choice()`. The other two expose `Leading()`, which is
 context and not a decision. `Match` needs a handler for each case, so a missing
 case does not compile. Failures are returned as errors, never as results.
 
+Before any request is sent, `Choose` validates the question and returns an
+error that names the field (`*decision.FieldError`, matched with `errors.As`):
+a nil or empty `State`, an estimated size over the API's 32k limit for state
+plus question, and more than 255 options are all rejected at no cost. Call
+`Question.Validate` to check a question without a client.
+
 `Decided` means clear enough to skip the debate, not approved: Jev's confidence
 is not calibrated.
 

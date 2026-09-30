@@ -83,6 +83,42 @@ func TestChooseRejectsInvalidInputBeforeAnyRequest(t *testing.T) {
 			wantMsg: "NewOptions",
 		},
 		{
+			name: "nil state",
+			mutate: func(q *Question[action]) []ChooseOption {
+				q.State = nil
+				return nil
+			},
+			wantErr: ErrInvalidQuestion,
+			wantMsg: "State",
+		},
+		{
+			name: "empty state",
+			mutate: func(q *Question[action]) []ChooseOption {
+				q.State = map[string]any{}
+				return nil
+			},
+			wantErr: ErrInvalidQuestion,
+			wantMsg: "State",
+		},
+		{
+			name: "unencodable state",
+			mutate: func(q *Question[action]) []ChooseOption {
+				q.State = make(chan int)
+				return nil
+			},
+			wantErr: ErrInvalidQuestion,
+			wantMsg: "encoded",
+		},
+		{
+			name: "oversized state",
+			mutate: func(q *Question[action]) []ChooseOption {
+				q.State = strings.Repeat("a", 4*maxStateTokens+8)
+				return nil
+			},
+			wantErr: ErrInvalidQuestion,
+			wantMsg: "too large",
+		},
+		{
 			name: "zero thresholds",
 			mutate: func(*Question[action]) []ChooseOption {
 				return []ChooseOption{WithThresholds(Thresholds{})}

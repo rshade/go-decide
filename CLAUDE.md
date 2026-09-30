@@ -123,9 +123,12 @@ code; the module path is `github.com/rshade/jev-decide` and is unpublished.
 - Issues are closed by the commit or PR message (`Closes #N` in
   `PR_MESSAGE.md`), never by running `gh issue close`. Comments and body edits
   on issues still need an explicit yes.
-- `decision.Choose` validates only its options, thresholds and client. It does
-  not validate `State`: a nil `State` reaches the API as `null` and costs a
-  round trip. Issue #3 owns that check.
+- `decision.Choose` runs `Question.Validate` before any request: options, a
+  non-empty `State` (checked on its JSON, so typed nils and `{}` fail) and a
+  size estimate (bytes / 4 tokens, limit 32,000, deliberately generous).
+  Rejections are `*FieldError` values. `NewOptions` caps options at 255.
+  Duplicate names cannot occur in `Options` (map-built); the check belongs to
+  the future spec loader.
 - Worktree cleanup 2026-09-30: removed 33 clean, merged worktrees (about 3.4 GB)
   and pruned 2 missing ones. Kept `finfocus/.worktrees/issue-1198`, `issue-1506`,
   `issue-1515` (uncommitted changes) and `issue-1523` (open PR #1580), and

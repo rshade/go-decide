@@ -2,6 +2,7 @@ package decision
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"testing"
 )
@@ -54,6 +55,42 @@ func TestNewOptions(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestNewOptionsCapsTheNumberOfOptions(t *testing.T) {
+	build := func(n int) map[action]string {
+		m := make(map[action]string, n)
+		for i := range n {
+			m[action(fmt.Sprintf("option-%03d", i))] = ""
+		}
+		return m
+	}
+
+	if o, err := NewOptions(build(MaxOptions)); err != nil || o.Len() != MaxOptions {
+		t.Fatalf("NewOptions(%d) = len %d, %v; want accepted", MaxOptions, o.Len(), err)
+	}
+
+	_, err := NewOptions(build(MaxOptions + 1))
+
+	var fe *FieldError
+	if !errors.As(err, &fe) || fe.Field != "Options" || !errors.Is(err, ErrInvalidOptions) {
+		t.Fatalf("NewOptions(%d) error = %v, want a FieldError on Options wrapping ErrInvalidOptions", MaxOptions+1, err)
+	}
+}
+
+func TestOptionsCannotHoldDuplicateNames(t *testing.T) {
+	descriptions := map[action]string{hold: "b"}
+	descriptions[ship] = "first"
+	descriptions[ship] = "second"
+
+	o, err := NewOptions(descriptions)
+	if err != nil {
+		t.Fatalf("NewOptions error: %v", err)
+	}
+
+	if o.Len() != 2 {
+		t.Fatalf("Len() = %d, want the repeated key to collapse to 2 options", o.Len())
 	}
 }
 

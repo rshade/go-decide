@@ -19,12 +19,16 @@ type Options[T ~string] struct {
 
 // NewOptions validates and copies descriptions, which maps each option to when
 // it applies. A description may be empty, and Jev then reads the name alone. It
-// fails for fewer than two options or an empty option name, so a bad set is
+// fails for fewer than two options, more than [MaxOptions], or an empty option name, so a bad set is
 // rejected before any request is sent.
 func NewOptions[T ~string](descriptions map[T]string) (Options[T], error) {
 	if len(descriptions) < 2 {
 		return Options[T]{}, fmt.Errorf("%w: a choice needs at least two options, got %d",
 			ErrInvalidOptions, len(descriptions))
+	}
+	if len(descriptions) > MaxOptions {
+		return Options[T]{}, newFieldError(ErrInvalidOptions, "Options",
+			"a choice takes at most %d options, got %d", MaxOptions, len(descriptions))
 	}
 	if _, empty := descriptions[""]; empty {
 		return Options[T]{}, fmt.Errorf("%w: an option name is empty", ErrInvalidOptions)

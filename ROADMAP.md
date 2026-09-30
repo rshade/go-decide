@@ -15,8 +15,7 @@ not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 - [ ] #1 Typed Jev client core [L] (adapter over `kataras/jev`)
 - [ ] #2 Validated Probability and sealed Result types [M] (`decision/`;
   thresholds are placeholders until #6)
-- [ ] #3 Validate decision spec before any API call [M] (must also reject a
-  nil `State`: `decision.Choose` does not, and it reaches the API as `null`)
+- [x] #3 Validate decision spec before any API call [M]
 
 ## Near-Term Vision (v0.2.0)
 
