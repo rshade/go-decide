@@ -40,9 +40,9 @@ func WithThresholds(t Thresholds) ChooseOption {
 	return func(c *chooseConfig) { c.thresholds = t }
 }
 
-// Choose asks Jev the question and returns a [Result]. Invalid options or
-// thresholds, and a nil client, are reported before any request is sent, so
-// they cost nothing.
+// Choose asks Jev the question and returns a [Result]. A nil client, an invalid
+// question (see [Question.Validate]) and invalid thresholds are reported before
+// any request is sent, so they cost nothing.
 func Choose[T ~string](ctx context.Context, client *jev.Client, q Question[T], opts ...ChooseOption) (Result[T], error) {
 	cfg := chooseConfig{thresholds: DefaultThresholds()}
 	for _, opt := range opts {
@@ -51,8 +51,8 @@ func Choose[T ~string](ctx context.Context, client *jev.Client, q Question[T], o
 	if client == nil {
 		return nil, ErrNilClient
 	}
-	if !q.Options.Valid() {
-		return nil, fmt.Errorf("%w: build the options with NewOptions", ErrInvalidOptions)
+	if err := q.Validate(); err != nil {
+		return nil, err
 	}
 	if !cfg.thresholds.Valid() {
 		return nil, fmt.Errorf("%w: build the thresholds with NewThresholds or DefaultThresholds", ErrInvalidThresholds)

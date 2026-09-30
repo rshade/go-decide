@@ -2,6 +2,7 @@ package decision_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -58,4 +59,20 @@ func ExampleNewThresholds() {
 	// Output:
 	// 0.4 0.8 <nil>
 	// decision: invalid thresholds: floor 0.8 must be below confident level 0.4
+}
+
+func ExampleQuestion_Validate() {
+	options, _ := decision.NewOptions(map[Action]string{Ship: "Release it.", Hold: "Wait."})
+	q := decision.Question[Action]{Options: options, Instructions: "Ready to release?"}
+
+	err := q.Validate()
+
+	var fieldErr *decision.FieldError
+	if errors.As(err, &fieldErr) {
+		fmt.Println(fieldErr.Field, "-", fieldErr.Reason)
+	}
+	fmt.Println(errors.Is(err, decision.ErrInvalidQuestion))
+	// Output:
+	// State - is empty (null)
+	// true
 }
