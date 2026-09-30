@@ -1,0 +1,242 @@
+[
+  {
+    "id": "dec-001",
+    "class": "dominant",
+    "correct_option": "Reserved EC2 cluster",
+    "why": "Only the reserved cluster stays under $4,000, ships within 8 weeks and cannot be interrupted mid-run."
+  },
+  {
+    "id": "dec-002",
+    "class": "contested",
+    "correct_option": null,
+    "why": "Warm standby and active-active both meet the 15-minute RTO, budget and deadline, trading cost and simplicity against near-zero downtime."
+  },
+  {
+    "id": "dec-003",
+    "class": "contested",
+    "correct_option": null,
+    "why": "The hosted SaaS and self-hosted Unleash both meet budget, audit and deadline, trading vendor lock-in against operational effort."
+  },
+  {
+    "id": "dec-004",
+    "class": "dominant",
+    "correct_option": "Managed auth vendor",
+    "why": "Only the managed auth vendor delivers SAML in time, stays under $2,500 and supplies SOC 2 Type II evidence."
+  },
+  {
+    "id": "dec-005",
+    "class": "dominant",
+    "correct_option": "Logical replication cutover",
+    "why": "Only logical replication keeps downtime under 5 minutes while fitting $3,000 and 10 weeks."
+  },
+  {
+    "id": "dec-006",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three meet throughput, consistency, budget and deadline, so the choice is relational familiarity versus managed scale versus schema flexibility."
+  },
+  {
+    "id": "dec-007",
+    "class": "dominant",
+    "correct_option": "Self-hosted Loki and Grafana",
+    "why": "Only self-hosted Loki fits $5,000, ingests 2 TB per day, keeps 30 days and ships within 10 weeks."
+  },
+  {
+    "id": "dec-008",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three options fit budget, timeline and timezone rules, so it comes down to durable ownership versus speed versus flexibility."
+  },
+  {
+    "id": "dec-009",
+    "class": "contested",
+    "correct_option": null,
+    "why": "Per-seat tiers and metered usage both meet margin, support and deadline, trading predictability against value alignment."
+  },
+  {
+    "id": "dec-010",
+    "class": "dominant",
+    "correct_option": "Contract-to-hire via specialist agency",
+    "why": "Only the specialist contract-to-hire has Go and PCI experience, stays under $22,000 and starts within 10 weeks."
+  },
+  {
+    "id": "dec-011",
+    "class": "contested",
+    "correct_option": null,
+    "why": "Hardware keys and IdP passkeys both meet the phishing-resistance, budget and deadline rules, trading strongest assurance against ease of rollout."
+  },
+  {
+    "id": "dec-012",
+    "class": "dominant",
+    "correct_option": "Flat three-tier plans",
+    "why": "Only flat three-tier plans meet the 70 percent margin, the 2-FTE support cap and the 6-week deadline."
+  },
+  {
+    "id": "dec-013",
+    "class": "dominant",
+    "correct_option": "Boutique pentest with retest",
+    "why": "Only the boutique pentest gives manual third-party testing with a retest, within $6,000 and 8 weeks."
+  },
+  {
+    "id": "dec-014",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three options fit CI budget, build time and timeline, trading atomic change ability against migration risk and team autonomy."
+  },
+  {
+    "id": "dec-015",
+    "class": "contested",
+    "correct_option": null,
+    "why": "GraphQL and REST with a BFF both fit latency, budget and 10-week release, trading client flexibility against team familiarity."
+  },
+  {
+    "id": "dec-016",
+    "class": "dominant",
+    "correct_option": "Managed NATS JetStream",
+    "why": "Only managed NATS JetStream keeps ordering, handles 50,000 messages per second, and fits $3,000 and 6 weeks."
+  },
+  {
+    "id": "dec-017",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three meet latency, budget and deadline, trading portability against operational simplicity and burst economics."
+  },
+  {
+    "id": "dec-018",
+    "class": "dominant",
+    "correct_option": "GitHub Actions hosted runners",
+    "why": "Only GitHub Actions hosted runners fit $1,500, offer Linux and macOS, and finish within 4 weeks."
+  },
+  {
+    "id": "dec-019",
+    "class": "dominant",
+    "correct_option": "AWS with BAA and KMS",
+    "why": "Only AWS with BAA and KMS provides a BAA, customer-managed keys, and fits $5,000 and 8 weeks."
+  },
+  {
+    "id": "dec-020",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three fit spend, time to revenue and payback, trading scalability against speed and control."
+  },
+  {
+    "id": "dec-021",
+    "class": "contested",
+    "correct_option": null,
+    "why": "Datadog and Grafana Cloud both meet budget, retention and deadline, trading time to value against cost and openness."
+  },
+  {
+    "id": "dec-022",
+    "class": "dominant",
+    "correct_option": "ClickHouse Cloud",
+    "why": "Only ClickHouse Cloud sustains 200,000 events per second, answers 90-day queries fast, and fits $6,000 and 10 weeks."
+  },
+  {
+    "id": "dec-023",
+    "class": "contested",
+    "correct_option": null,
+    "why": "Vanta, Drata and the consultancy all meet the deadline and budget, trading internal effort against price and speed."
+  },
+  {
+    "id": "dec-024",
+    "class": "dominant",
+    "correct_option": "Managed Meilisearch cloud",
+    "why": "Only managed Meilisearch provides typo tolerance at 20 million documents within $4,000 and 6 weeks."
+  },
+  {
+    "id": "dec-025",
+    "class": "dominant",
+    "correct_option": "Weekly rotation across all six",
+    "why": "Only the six-person weekly rotation gives 24/7 coverage at no more than 1 week in 6 within $3,000 and 4 weeks."
+  },
+  {
+    "id": "dec-026",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three meet failure rate, approvals, deadline and spend, trading speed against predictability and tooling investment."
+  },
+  {
+    "id": "dec-027",
+    "class": "dominant",
+    "correct_option": "Content and SEO program",
+    "why": "Only content and SEO fits $20,000, pays back within 12 months and produces pipeline within 16 weeks."
+  },
+  {
+    "id": "dec-028",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three meet budget, deadline and access rules, trading speed and cost against governance depth and flexibility."
+  },
+  {
+    "id": "dec-029",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three options satisfy retention, deadline and budget, trading a rigorous history model against simplicity and independence."
+  },
+  {
+    "id": "dec-030",
+    "class": "dominant",
+    "correct_option": "Amazon SES",
+    "why": "Only Amazon SES fits $800 for 5 million emails, includes a dedicated IP, and migrates within 3 weeks."
+  },
+  {
+    "id": "dec-031",
+    "class": "contested",
+    "correct_option": null,
+    "why": "On-demand and reserved cloud GPUs both meet latency, budget and deadline, trading flexibility against cost and commitment."
+  },
+  {
+    "id": "dec-032",
+    "class": "dominant",
+    "correct_option": "Modular monolith with regional replicas",
+    "why": "Only the modular monolith with regional replicas is multi-region, fits $9,000 and lands within 12 weeks."
+  },
+  {
+    "id": "dec-033",
+    "class": "dominant",
+    "correct_option": "AWS Secrets Manager with External Secrets",
+    "why": "Only Secrets Manager with External Secrets gives automatic rotation and audit logs within $1,000 and 5 weeks."
+  },
+  {
+    "id": "dec-034",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three meet the deadline, spend cap and EU residency rule, trading market size against speed and focus."
+  },
+  {
+    "id": "dec-035",
+    "class": "contested",
+    "correct_option": null,
+    "why": "Tailscale and Cloudflare Access both meet budget, logging and deadline, trading protocol coverage against clientless simplicity."
+  },
+  {
+    "id": "dec-036",
+    "class": "dominant",
+    "correct_option": "EU hires through employer of record",
+    "why": "Only EU hires through an employer of record give EU coverage under $60,000 and within 12 weeks."
+  },
+  {
+    "id": "dec-037",
+    "class": "dominant",
+    "correct_option": "15 percent annual prepay discount",
+    "why": "Only the 15 percent annual prepay discount stays within the 20 percent policy and projects over $300,000 in 8 weeks."
+  },
+  {
+    "id": "dec-038",
+    "class": "contested",
+    "correct_option": null,
+    "why": "Snowflake, BigQuery and Redshift Serverless all meet budget, timeline and concurrency, trading cost predictability against cloud alignment."
+  },
+  {
+    "id": "dec-039",
+    "class": "dominant",
+    "correct_option": "Amazon EKS",
+    "why": "Only Amazon EKS keeps Helm charts unchanged, carries a 99.9 percent platform SLA, and fits $10,000 and 8 weeks."
+  },
+  {
+    "id": "dec-040",
+    "class": "contested",
+    "correct_option": null,
+    "why": "All three fit spend, defect target, timeline and coverage, trading context and speed against flexibility and long-term ownership."
+  }
+]

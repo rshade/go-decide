@@ -1,0 +1,183 @@
+// Copyright 2026 The FinFocus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package finfocus.v1;
+
+option go_package = "github.com/rshade/finfocus-spec/sdk/go/proto/finfocus/v1;pbc";
+
+import "finfocus/v1/costsource.proto";
+
+// RecommendationScorerService is implemented by scorer plugins, which rate
+// recommendations that other plugins produced. A scorer adds judgement the
+// producing plugins do not carry: how risky acting is, whether the resource
+// is probably in that state on purpose, whether the recommendation is worth an
+// engineer's time, whether the evidence is thin, and which recommendations
+// duplicate each other. A scorer never creates, changes, or applies a
+// recommendation, and a score is never approval to act.
+//
+// Scores are ranking signals, not calibrated probabilities. Hosts MUST NOT use
+// a score as the only gate for an irreversible action, and MUST treat every
+// free-text field of the request as untrusted input.
+//
+// Error semantics:
+//   - INVALID_ARGUMENT: recommendations is empty, holds more entries than
+//     max_batch_size, holds two entries with the same id, or names a signal the
+//     scorer does not support in signals.
+//   - UNIMPLEMENTED: the plugin does not implement scoring. Hosts check
+//     PLUGIN_CAPABILITY_RECOMMENDATION_SCORING first and do not call it.
+//   - UNAUTHENTICATED, PERMISSION_DENIED, RESOURCE_EXHAUSTED, UNAVAILABLE:
+//     the scorer's backend refused or could not serve the whole call. A failure
+//     that affects one recommendation is reported in its result instead.
+service RecommendationScorerService {
+  // ScoreRecommendations rates each recommendation in the request. Results are
+  // index-aligned: results[i] answers recommendations[i]. One failing entry
+  // never fails the batch.
+  rpc ScoreRecommendations(ScoreRecommendationsRequest) returns (ScoreRecommendationsResponse);
+}
+
+// ScoreSignal names one kind of score a scorer can return.
+enum ScoreSignal {
+  // SCORE_SIGNAL_UNSPECIFIED is invalid in a request.
+  SCORE_SIGNAL_UNSPECIFIED = 0;
+  // Risk that applying the recommendation hurts users, loses data, causes a
+  // performance regression, or locks in a financial commitment that is hard to
+  // undo. 0 is low risk, 1 is high risk.
+  SCORE_SIGNAL_RISK = 1;
+  // Likelihood that the resource is in the flagged state on purpose (standby,
+  // seasonal, compliance retention, headroom), so the recommendation is wrong
+  // for it. 0 is genuinely wasteful, 1 is probably intentional.
+  SCORE_SIGNAL_FALSE_POSITIVE = 2;
+  // Whether the recommendation is worth an engineer's time now, weighing
+  // saving, risk and effort. 0 is not worth it, 1 is clearly worth it.
+  SCORE_SIGNAL_WORTH_ACTING = 3;
+  // Expected priority on a four-level scale, from 0 (ignore) to 3 (high).
+  // Fractional values fall between levels.
+  SCORE_SIGNAL_PRIORITY = 4;
+  // Whether the record is too thin or contradictory to judge. 0 is enough
+  // evidence, 1 is too little.
+  SCORE_SIGNAL_INSUFFICIENT_EVIDENCE = 5;
+  // Grouping of recommendations that describe the same change to the same
+  // resource. Carried in RecommendationScores.duplicate_group_id.
+  SCORE_SIGNAL_DUPLICATE_GROUP = 6;
+}
+
+// ScoreCalibration says how a scorer's numeric signals may be read.
+enum ScoreCalibration {
+  // SCORE_CALIBRATION_UNSPECIFIED means the scorer made no claim; hosts treat
+  // it as SCORE_CALIBRATION_RANKING_ONLY.
+  SCORE_CALIBRATION_UNSPECIFIED = 0;
+  // Values order recommendations but are not probabilities. Compare them only
+  // with each other and pick thresholds against labelled data.
+  SCORE_CALIBRATION_RANKING_ONLY = 1;
+  // Values are calibrated probabilities the scorer has checked against
+  // outcomes.
+  SCORE_CALIBRATION_PROBABILITY = 2;
+}
+
+// IdentifierMode controls how the host presents resource identifiers to a
+// scorer that sends data off-host.
+enum IdentifierMode {
+  // IDENTIFIER_MODE_UNSPECIFIED is treated as IDENTIFIER_MODE_PSEUDONYMIZED.
+  IDENTIFIER_MODE_UNSPECIFIED = 0;
+  // Raw cloud identifiers (resource id, name, ARN) are sent as they are.
+  IDENTIFIER_MODE_RAW = 1;
+  // resource.id and resource.name are replaced by opaque tokens that are
+  // identical for the same value within one request and carry no meaning
+  // outside it. Duplicate grouping keeps working.
+  IDENTIFIER_MODE_PSEUDONYMIZED = 2;
+  // resource.id and resource.name are removed. Duplicate grouping becomes
+  // unreliable; a scorer that cannot group returns no duplicate_group_id.
+  IDENTIFIER_MODE_OMITTED = 3;
+}
+
+// ScoreRecommendationsRequest carries recommendations to score.
+message ScoreRecommendationsRequest {
+  // recommendations are complete Recommendation messages as returned by
+  // GetRecommendations, so the scorer sees tags, metadata, impact and
+  // utilization. Between 1 and max_batch_size entries, each with a distinct id.
+  repeated Recommendation recommendations = 1;
+
+  // signals limits the response to these signals. Empty means every signal the
+  // scorer supports.
+  repeated ScoreSignal signals = 2;
+
+  // identifier_mode is how the host has already treated resource identifiers
+  // in recommendations. It informs the scorer; the host performs the
+  // transformation.
+  IdentifierMode identifier_mode = 3;
+}
+
+// ScoreRecommendationsResponse carries the scores.
+message ScoreRecommendationsResponse {
+  // results has one entry per request entry, in request order.
+  repeated RecommendationScoreResult results = 1;
+
+  // max_batch_size is the largest number of recommendations the scorer accepts
+  // in one call. Hosts split larger sets.
+  int32 max_batch_size = 2;
+
+  // scorer identifies who produced the scores.
+  ScorerInfo scorer = 3;
+
+  // supported_signals lists every signal the scorer can return.
+  repeated ScoreSignal supported_signals = 4;
+}
+
+// RecommendationScoreResult is the outcome for one recommendation.
+message RecommendationScoreResult {
+  // recommendation_id echoes Recommendation.id.
+  string recommendation_id = 1;
+
+  oneof result {
+    // scores holds the requested signals.
+    RecommendationScores scores = 2;
+    // error reports why this recommendation could not be scored. The code is a
+    // google.rpc.Code and is never OK.
+    ResourceError error = 3;
+  }
+}
+
+// RecommendationScores holds the signals for one recommendation. A signal the
+// scorer did not compute is unset.
+message RecommendationScores {
+  // risk is in [0, 1]; see SCORE_SIGNAL_RISK.
+  optional double risk = 1;
+  // false_positive is in [0, 1]; see SCORE_SIGNAL_FALSE_POSITIVE.
+  optional double false_positive = 2;
+  // worth_acting is in [0, 1]; see SCORE_SIGNAL_WORTH_ACTING.
+  optional double worth_acting = 3;
+  // priority is in [0, 3]; see SCORE_SIGNAL_PRIORITY.
+  optional double priority = 4;
+  // insufficient_evidence is in [0, 1]; see SCORE_SIGNAL_INSUFFICIENT_EVIDENCE.
+  optional double insufficient_evidence = 5;
+  // duplicate_group_id is the same non-empty string for every recommendation in
+  // the request that duplicates each other. Empty means no duplicate found or
+  // grouping not performed. The value is meaningful only within one response.
+  string duplicate_group_id = 6;
+}
+
+// ScorerInfo identifies a scorer and how to read its numbers.
+message ScorerInfo {
+  // name is the scorer implementation, for example "jev".
+  string name = 1;
+  // model is the model or engine behind it, for example "jev-1.13.0". Empty
+  // for scorers that use no model.
+  string model = 2;
+  // calibration says whether numeric signals are probabilities.
+  ScoreCalibration calibration = 3;
+  // provider_request_id is the backend's request identifier, for support
+  // tickets. Empty when there is none.
+  string provider_request_id = 4;
+}

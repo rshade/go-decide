@@ -1,0 +1,2496 @@
+[
+  {
+    "id": "dec-001",
+    "title": "How should we run the nightly ETL pipeline?",
+    "context": "Our nightly ETL currently runs on a single overloaded VM and misses its window about once a week. Finance dashboards depend on it finishing before 7am. We need to move it to scalable compute this quarter.",
+    "constraints": [
+      "Monthly infrastructure budget of $4,000 or less",
+      "The job must finish inside a 6-hour window and cannot be interrupted mid-run",
+      "Migration must ship within 8 weeks",
+      "Team is 3 engineers with no dedicated SRE"
+    ],
+    "options": [
+      {
+        "name": "Spot fleet with retries",
+        "description": "Run the job on a spot instance fleet and retry failed stages.",
+        "pros": [
+          "Lowest compute cost",
+          "Elastic capacity"
+        ],
+        "cons": [
+          "Instances can be reclaimed mid-run",
+          "Retry logic adds complexity"
+        ],
+        "cost_usd_per_month": 1800,
+        "time_to_ship_weeks": 5
+      },
+      {
+        "name": "Streaming rewrite",
+        "description": "Replace the batch job with a continuous streaming pipeline.",
+        "pros": [
+          "Fresh data all day",
+          "Removes the batch window"
+        ],
+        "cons": [
+          "Full rewrite of all transforms",
+          "New operational skills needed"
+        ],
+        "cost_usd_per_month": 2500,
+        "time_to_ship_weeks": 20
+      },
+      {
+        "name": "Serverless Spark service",
+        "description": "Move the transforms to a managed serverless Spark offering.",
+        "pros": [
+          "No cluster management",
+          "Fast to provision"
+        ],
+        "cons": [
+          "Priciest per run",
+          "Vendor-specific job config"
+        ],
+        "cost_usd_per_month": 6200,
+        "time_to_ship_weeks": 4
+      },
+      {
+        "name": "Reserved EC2 cluster",
+        "description": "Provision a fixed reserved-instance cluster sized for peak load.",
+        "pros": [
+          "Predictable runtime",
+          "No interruption risk"
+        ],
+        "cons": [
+          "Pays for idle hours",
+          "Manual capacity planning"
+        ],
+        "cost_usd_per_month": 3400,
+        "time_to_ship_weeks": 6
+      }
+    ]
+  },
+  {
+    "id": "dec-002",
+    "title": "Should we run active-active or active-passive across two regions?",
+    "context": "A large customer requires regional failover after a provider outage last spring. Engineering must choose a topology that meets the contractual recovery target. The platform is stateless except for one primary Postgres database.",
+    "constraints": [
+      "Recovery time objective of 15 minutes or less",
+      "Infrastructure budget of $14,000 per month or less",
+      "Ship within 16 weeks",
+      "Team of 6 engineers"
+    ],
+    "options": [
+      {
+        "name": "Pilot light with runbook",
+        "description": "Keep only data replicated and rebuild compute from templates during an outage.",
+        "pros": [
+          "Cheapest option",
+          "Fast to set up"
+        ],
+        "cons": [
+          "Recovery takes about 45 minutes",
+          "Relies on a rehearsed runbook"
+        ],
+        "cost_usd_per_month": 6000,
+        "time_to_ship_weeks": 5
+      },
+      {
+        "name": "Active-active with global database",
+        "description": "Serve traffic from both regions using a globally distributed database.",
+        "pros": [
+          "Near-zero recovery time",
+          "Lower latency for far users"
+        ],
+        "cons": [
+          "Conflict resolution complexity",
+          "Highest spend"
+        ],
+        "cost_usd_per_month": 13500,
+        "time_to_ship_weeks": 15
+      },
+      {
+        "name": "Warm standby region",
+        "description": "Keep a scaled-down replica stack in region two and promote it on failure.",
+        "pros": [
+          "Simple mental model",
+          "Lower steady-state cost"
+        ],
+        "cons": [
+          "Failover is a manual promotion step",
+          "Standby capacity goes untested"
+        ],
+        "cost_usd_per_month": 9000,
+        "time_to_ship_weeks": 8
+      }
+    ]
+  },
+  {
+    "id": "dec-003",
+    "title": "Which feature flag system should we adopt?",
+    "context": "Releases are tied to deploys, and two incidents this year could have been mitigated with a kill switch. Product also wants percentage rollouts. We need a shared flag system across web and mobile.",
+    "constraints": [
+      "Budget of $2,000 per month or less",
+      "Audit log of every flag change is mandatory",
+      "Must be live within 8 weeks",
+      "About 40 engineers will use it"
+    ],
+    "options": [
+      {
+        "name": "Homegrown flag table",
+        "description": "Build flags on a database table plus a small client library.",
+        "pros": [
+          "Zero license cost",
+          "Tailored to our stack"
+        ],
+        "cons": [
+          "Audit log and UI must be built",
+          "No percentage rollout tooling"
+        ],
+        "cost_usd_per_month": 0,
+        "time_to_ship_weeks": 9
+      },
+      {
+        "name": "Self-hosted Unleash",
+        "description": "Run the open-source Unleash server in our cluster.",
+        "pros": [
+          "Data stays in our network",
+          "Low license cost"
+        ],
+        "cons": [
+          "We own uptime and upgrades",
+          "Weaker mobile SDK story"
+        ],
+        "cost_usd_per_month": 700,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "Hosted flag SaaS",
+        "description": "Adopt a commercial hosted feature flag platform.",
+        "pros": [
+          "SDKs for every platform",
+          "Built-in audit log and targeting"
+        ],
+        "cons": [
+          "Per-seat pricing grows with headcount",
+          "Flag data lives off-platform"
+        ],
+        "cost_usd_per_month": 1800,
+        "time_to_ship_weeks": 2
+      }
+    ]
+  },
+  {
+    "id": "dec-004",
+    "title": "How do we get enterprise SSO and SOC 2 evidence for the Q4 deal?",
+    "context": "A prospect will sign only with SAML SSO and a SOC 2 Type II evidence package. Our login is a hand-rolled password system on a 2-person backend team. Legal wants the answer before the security questionnaire is returned.",
+    "constraints": [
+      "SAML SSO and audit logging must be delivered within 10 weeks",
+      "Budget of $2,500 per month or less",
+      "Only 2 backend engineers, and at most 20 percent of their time on ops",
+      "Vendor must supply SOC 2 Type II evidence"
+    ],
+    "options": [
+      {
+        "name": "Managed auth vendor",
+        "description": "Adopt a managed identity provider with SAML and SOC 2 reports.",
+        "pros": [
+          "Vendor-supplied compliance reports",
+          "SAML connectors out of the box"
+        ],
+        "cons": [
+          "Per-MAU pricing",
+          "Migration of existing password hashes"
+        ],
+        "cost_usd_per_month": 1800,
+        "time_to_ship_weeks": 4
+      },
+      {
+        "name": "Enterprise identity suite",
+        "description": "Buy a full enterprise IAM suite with premium support.",
+        "pros": [
+          "Fastest rollout with services",
+          "Deep policy controls"
+        ],
+        "cons": [
+          "Largest contract and minimums",
+          "Heavy for a 2-person team"
+        ],
+        "cost_usd_per_month": 4200,
+        "time_to_ship_weeks": 3
+      },
+      {
+        "name": "Build auth in-house",
+        "description": "Extend the current password system with SAML and audit logs.",
+        "pros": [
+          "Full control of the user model",
+          "No new vendor"
+        ],
+        "cons": [
+          "Auth code we must secure and audit ourselves",
+          "Slow to reach evidence"
+        ],
+        "cost_usd_per_month": 600,
+        "time_to_ship_weeks": 14
+      },
+      {
+        "name": "Self-hosted Keycloak",
+        "description": "Deploy Keycloak with SAML brokering and our own audit export.",
+        "pros": [
+          "No license fee",
+          "Mature SAML support"
+        ],
+        "cons": [
+          "Ongoing patching and HA duty",
+          "Evidence is our burden"
+        ],
+        "cost_usd_per_month": 900,
+        "time_to_ship_weeks": 12
+      }
+    ]
+  },
+  {
+    "id": "dec-005",
+    "title": "How should we migrate the primary database to the new version?",
+    "context": "The main Postgres instance is on an end-of-life major version and must be upgraded and moved to a new cluster. The application is a payments ledger with round-the-clock traffic. Leadership will not tolerate a long maintenance page.",
+    "constraints": [
+      "Cutover downtime of 5 minutes or less",
+      "Budget of $3,000 per month or less during the migration",
+      "Complete within 10 weeks",
+      "Team of 4 engineers"
+    ],
+    "options": [
+      {
+        "name": "Dump and restore",
+        "description": "Take the site down, dump the database, and restore into the new cluster.",
+        "pros": [
+          "Simplest procedure",
+          "Lowest cost"
+        ],
+        "cons": [
+          "Hours of downtime at our data size",
+          "No easy rollback"
+        ],
+        "cost_usd_per_month": 1200,
+        "time_to_ship_weeks": 3
+      },
+      {
+        "name": "Application dual-write",
+        "description": "Write to both databases from the app and cut reads over later.",
+        "pros": [
+          "Zero downtime by design",
+          "Gradual validation"
+        ],
+        "cons": [
+          "Invasive code changes",
+          "Risk of divergence"
+        ],
+        "cost_usd_per_month": 2000,
+        "time_to_ship_weeks": 14
+      },
+      {
+        "name": "Managed migration service",
+        "description": "Use a cloud migration service with change data capture.",
+        "pros": [
+          "Minimal tooling to build",
+          "Built-in monitoring"
+        ],
+        "cons": [
+          "Highest cost",
+          "Limited handling of custom extensions"
+        ],
+        "cost_usd_per_month": 3600,
+        "time_to_ship_weeks": 5
+      },
+      {
+        "name": "Logical replication cutover",
+        "description": "Replicate to the new cluster and switch traffic once lag reaches zero.",
+        "pros": [
+          "Seconds of downtime",
+          "Rollback by reversing replication"
+        ],
+        "cons": [
+          "Sequences and DDL need manual care",
+          "Requires rehearsal"
+        ],
+        "cost_usd_per_month": 2400,
+        "time_to_ship_weeks": 6
+      }
+    ]
+  },
+  {
+    "id": "dec-006",
+    "title": "Which primary datastore should the new order service use?",
+    "context": "We are splitting orders out of the monolith into their own service. Traffic peaks during promotions, and inventory decrements must never oversell. The team wants a single store for orders and inventory.",
+    "constraints": [
+      "Sustain 5,000 writes per second at peak",
+      "Strongly consistent inventory updates",
+      "Budget of $6,000 per month or less",
+      "Ship in 10 weeks or less"
+    ],
+    "options": [
+      {
+        "name": "Partitioned Postgres",
+        "description": "Use Postgres with declarative partitioning and a write-optimized instance.",
+        "pros": [
+          "Transactions are native",
+          "Team already runs it"
+        ],
+        "cons": [
+          "Vertical scaling ceiling",
+          "Partition maintenance"
+        ],
+        "cost_usd_per_month": 3200,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "MongoDB Atlas",
+        "description": "Store orders as documents with multi-document transactions.",
+        "pros": [
+          "Flexible schema",
+          "Horizontal sharding"
+        ],
+        "cons": [
+          "Transaction throughput cost",
+          "New operational skills"
+        ],
+        "cost_usd_per_month": 5200,
+        "time_to_ship_weeks": 10
+      },
+      {
+        "name": "DynamoDB with transactions",
+        "description": "Model orders in DynamoDB and use transactional writes for inventory.",
+        "pros": [
+          "Effectively unlimited throughput",
+          "No servers to run"
+        ],
+        "cons": [
+          "Access patterns fixed up front",
+          "AWS-only lock-in"
+        ],
+        "cost_usd_per_month": 4100,
+        "time_to_ship_weeks": 9
+      }
+    ]
+  },
+  {
+    "id": "dec-007",
+    "title": "Which logging and observability stack should we standardize on?",
+    "context": "Log volume tripled after the mobile launch and the current hosted tool is throttling us. Security also needs a month of history for incident review. On-call engineers are frustrated by slow searches.",
+    "constraints": [
+      "Budget of $5,000 per month or less",
+      "Ingest 2 TB of logs per day",
+      "Retain logs for 30 days for compliance",
+      "Migrate within 10 weeks"
+    ],
+    "options": [
+      {
+        "name": "Self-hosted Loki and Grafana",
+        "description": "Run Loki with object storage and Grafana dashboards.",
+        "pros": [
+          "Cheap object storage retention",
+          "Open formats"
+        ],
+        "cons": [
+          "We operate the cluster",
+          "Label design needs care"
+        ],
+        "cost_usd_per_month": 2600,
+        "time_to_ship_weeks": 7
+      },
+      {
+        "name": "Cloud-native logs, 7-day tier",
+        "description": "Ship everything to the cloud provider's logging service at the standard retention tier.",
+        "pros": [
+          "Nothing new to run",
+          "Native IAM integration"
+        ],
+        "cons": [
+          "Retention limited to 7 days at this price",
+          "Slow ad hoc queries"
+        ],
+        "cost_usd_per_month": 3900,
+        "time_to_ship_weeks": 1
+      },
+      {
+        "name": "Full-suite APM vendor",
+        "description": "Adopt a premium all-in-one observability vendor for logs, metrics and traces.",
+        "pros": [
+          "Best search UX",
+          "Fastest to onboard"
+        ],
+        "cons": [
+          "Log ingest pricing is steep",
+          "Data export is difficult"
+        ],
+        "cost_usd_per_month": 18000,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Hosted Elasticsearch",
+        "description": "Use a managed Elasticsearch service with hot and warm tiers.",
+        "pros": [
+          "Powerful query language",
+          "Managed upgrades"
+        ],
+        "cons": [
+          "Large indexes are costly",
+          "Tuning shards takes skill"
+        ],
+        "cost_usd_per_month": 7500,
+        "time_to_ship_weeks": 4
+      }
+    ]
+  },
+  {
+    "id": "dec-008",
+    "title": "How should we add two engineers of capacity this quarter?",
+    "context": "The roadmap is one quarter behind after an unplanned platform migration. Leadership has approved funding for two engineers worth of capacity. The existing team is already at its review limit.",
+    "constraints": [
+      "Spend of $30,000 per month or less",
+      "Capacity must land within 12 weeks",
+      "Sprint velocity may not drop more than 20 percent during onboarding",
+      "Hires must be timezone-compatible with the current team"
+    ],
+    "options": [
+      {
+        "name": "Specialist agency pair",
+        "description": "Engage an agency to supply two engineers embedded in our squads.",
+        "pros": [
+          "Start within days",
+          "Flexible end date"
+        ],
+        "cons": [
+          "Highest context-loss risk",
+          "Rework if scope shifts"
+        ],
+        "cost_usd_per_month": 24000,
+        "time_to_ship_weeks": 3
+      },
+      {
+        "name": "Senior hire plus contractor",
+        "description": "Hire one senior full-time and bring in one experienced contractor.",
+        "pros": [
+          "Senior can unblock others",
+          "Contractor starts quickly"
+        ],
+        "cons": [
+          "Contractor knowledge leaves",
+          "Uneven cost"
+        ],
+        "cost_usd_per_month": 29000,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "Two mid-level hires",
+        "description": "Recruit two mid-level full-time engineers.",
+        "pros": [
+          "Long-term ownership",
+          "Cultural fit"
+        ],
+        "cons": [
+          "Slow ramp",
+          "Review load on seniors"
+        ],
+        "cost_usd_per_month": 28000,
+        "time_to_ship_weeks": 10
+      }
+    ]
+  },
+  {
+    "id": "dec-009",
+    "title": "Should we move pricing from per-seat to usage-based?",
+    "context": "Large customers say per-seat pricing punishes them for wide adoption, while small accounts churn at renewal. Finance wants revenue that tracks value delivered. Any change must not destabilize existing contracts.",
+    "constraints": [
+      "Billing changes must ship in 10 weeks or less",
+      "Gross margin of at least 70 percent",
+      "Billing support limited to 1 FTE",
+      "Existing Stripe account stays in use"
+    ],
+    "options": [
+      {
+        "name": "Platform fee plus usage",
+        "description": "Combine a fixed platform fee with metered overage.",
+        "pros": [
+          "Stable base revenue",
+          "Fair for heavy users"
+        ],
+        "cons": [
+          "Complex invoices",
+          "Longest build"
+        ],
+        "cost_usd_per_month": 1800,
+        "time_to_ship_weeks": 12
+      },
+      {
+        "name": "Per-seat tiers",
+        "description": "Keep seats but add three tiers with feature gates.",
+        "pros": [
+          "Predictable customer bills",
+          "Low engineering effort"
+        ],
+        "cons": [
+          "Does not fix the wide-adoption complaint",
+          "Feature gating disputes"
+        ],
+        "cost_usd_per_month": 600,
+        "time_to_ship_weeks": 4
+      },
+      {
+        "name": "Metered usage via Stripe Billing",
+        "description": "Charge per unit of core activity using Stripe metered billing.",
+        "pros": [
+          "Revenue tracks value",
+          "Land-and-expand friendly"
+        ],
+        "cons": [
+          "Bill shock support tickets",
+          "Forecasting is harder"
+        ],
+        "cost_usd_per_month": 1500,
+        "time_to_ship_weeks": 9
+      }
+    ]
+  },
+  {
+    "id": "dec-010",
+    "title": "How should we fill the backend lead role?",
+    "context": "Our backend lead resigned and a payments certification audit is coming. The role needs someone who can own the Go services and the PCI evidence trail. The interim manager is stretched across three teams.",
+    "constraints": [
+      "Loaded cost of $22,000 per month or less",
+      "Lead in seat within 10 weeks",
+      "Must have production Go experience",
+      "Must have PCI DSS experience"
+    ],
+    "options": [
+      {
+        "name": "Two junior hires",
+        "description": "Hire two junior engineers and share leadership among seniors.",
+        "pros": [
+          "Lowest salary spend",
+          "Grows the team"
+        ],
+        "cons": [
+          "No Go or PCI leadership",
+          "Adds mentoring load"
+        ],
+        "cost_usd_per_month": 16000,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "Promote internal senior",
+        "description": "Promote the strongest internal senior engineer to lead.",
+        "pros": [
+          "Immediate start",
+          "Knows the codebase"
+        ],
+        "cons": [
+          "No PCI experience",
+          "Leaves a gap on the team"
+        ],
+        "cost_usd_per_month": 17500,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Contract-to-hire via specialist agency",
+        "description": "Use a fintech specialist agency for a contract-to-hire lead with Go and PCI experience.",
+        "pros": [
+          "Proven PCI background",
+          "Try before converting"
+        ],
+        "cons": [
+          "Agency margin on contract",
+          "Conversion is not guaranteed"
+        ],
+        "cost_usd_per_month": 20500,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "Retained recruiter search",
+        "description": "Hire an external senior lead through a retained executive search.",
+        "pros": [
+          "Widest candidate pool",
+          "Recruiter carries sourcing"
+        ],
+        "cons": [
+          "Typical search runs 12 weeks",
+          "Recruiter fees on top"
+        ],
+        "cost_usd_per_month": 21000,
+        "time_to_ship_weeks": 12
+      }
+    ]
+  },
+  {
+    "id": "dec-011",
+    "title": "How do we roll out phishing-resistant MFA?",
+    "context": "A credential-stuffing incident hit two employee accounts last month. The security team wants phishing-resistant authentication for everyone with admin access. The company has 300 employees on a single identity provider.",
+    "constraints": [
+      "Phishing-resistant MFA for all admins within 6 weeks",
+      "Budget of $3,000 per month or less including hardware amortization",
+      "Must work with the existing identity provider",
+      "Help desk capacity of 2 people"
+    ],
+    "options": [
+      {
+        "name": "TOTP with number matching",
+        "description": "Keep authenticator apps and add number matching prompts.",
+        "pros": [
+          "Cheapest",
+          "Familiar to staff"
+        ],
+        "cons": [
+          "Still phishable via real-time relay",
+          "Weakest fix"
+        ],
+        "cost_usd_per_month": 400,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Hardware security keys for all",
+        "description": "Issue FIDO2 keys to every employee.",
+        "pros": [
+          "Strongest phishing resistance",
+          "Works offline"
+        ],
+        "cons": [
+          "Shipping and lost-key overhead",
+          "Slowest rollout"
+        ],
+        "cost_usd_per_month": 2100,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "Passkeys through the IdP",
+        "description": "Enable platform passkeys in the identity provider.",
+        "pros": [
+          "No hardware to ship",
+          "Fast enrollment"
+        ],
+        "cons": [
+          "Depends on device support",
+          "Recovery flows need care"
+        ],
+        "cost_usd_per_month": 1200,
+        "time_to_ship_weeks": 3
+      }
+    ]
+  },
+  {
+    "id": "dec-012",
+    "title": "How should we relaunch pricing before the Q4 billing cycle?",
+    "context": "Sales says our current single plan is too rigid, and self-serve conversion has stalled. Marketing needs new pricing live before the next billing cycle starts. Support headcount is fixed for the year.",
+    "constraints": [
+      "Gross margin of at least 70 percent",
+      "Support capped at 2 FTE",
+      "Live within 6 weeks",
+      "Must use the existing Stripe integration"
+    ],
+    "options": [
+      {
+        "name": "Custom-quote enterprise only",
+        "description": "Move all customers to quoted annual contracts.",
+        "pros": [
+          "High price realization",
+          "Personal relationships"
+        ],
+        "cons": [
+          "Needs about 4 support FTE",
+          "Slows small customers"
+        ],
+        "cost_usd_per_month": 900,
+        "time_to_ship_weeks": 4
+      },
+      {
+        "name": "Usage-based metering",
+        "description": "Build metered billing for API calls.",
+        "pros": [
+          "Aligned to value",
+          "Scales with customer growth"
+        ],
+        "cons": [
+          "New metering pipeline takes about 10 weeks",
+          "Invoice disputes"
+        ],
+        "cost_usd_per_month": 1800,
+        "time_to_ship_weeks": 10
+      },
+      {
+        "name": "Freemium with unlimited free tier",
+        "description": "Offer a generous free plan and upsell later.",
+        "pros": [
+          "Top-of-funnel growth",
+          "Viral potential"
+        ],
+        "cons": [
+          "Infrastructure cost lowers margin to about 55 percent",
+          "Support load rises"
+        ],
+        "cost_usd_per_month": 6500,
+        "time_to_ship_weeks": 5
+      },
+      {
+        "name": "Flat three-tier plans",
+        "description": "Introduce three fixed plans on the existing Stripe integration.",
+        "pros": [
+          "Simple to explain",
+          "Quick to build"
+        ],
+        "cons": [
+          "Leaves money on the table for heavy users",
+          "Tier boundaries need tuning"
+        ],
+        "cost_usd_per_month": 400,
+        "time_to_ship_weeks": 3
+      }
+    ]
+  },
+  {
+    "id": "dec-013",
+    "title": "How should we validate security before the customer audit?",
+    "context": "A regulated customer will run its own audit in two months and asked for evidence of independent testing. Our last assessment is 18 months old. The auditor will only accept manual testing by a qualified third party.",
+    "constraints": [
+      "Report in hand within 8 weeks",
+      "Budget of $6,000 per month or less",
+      "Manual testing by a qualified third party required",
+      "Findings must be retested after fixes"
+    ],
+    "options": [
+      {
+        "name": "Automated DAST scanner only",
+        "description": "Run a commercial dynamic scanner against staging and production.",
+        "pros": [
+          "Cheap and quick",
+          "Continuous coverage"
+        ],
+        "cons": [
+          "No manual testing performed",
+          "Misses logic flaws"
+        ],
+        "cost_usd_per_month": 1200,
+        "time_to_ship_weeks": 1
+      },
+      {
+        "name": "Public bug bounty",
+        "description": "Launch a public bug bounty program on a managed platform.",
+        "pros": [
+          "Continuous researcher coverage",
+          "Pay only for findings"
+        ],
+        "cons": [
+          "Auditor does not treat it as a formal test",
+          "About 10 weeks to tune"
+        ],
+        "cost_usd_per_month": 4000,
+        "time_to_ship_weeks": 10
+      },
+      {
+        "name": "Boutique pentest with retest",
+        "description": "Hire a specialist boutique for manual testing plus a retest window.",
+        "pros": [
+          "Deep manual coverage",
+          "Retest included"
+        ],
+        "cons": [
+          "Scheduling depends on their calendar",
+          "Narrower scope"
+        ],
+        "cost_usd_per_month": 5500,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "Big-four assessment",
+        "description": "Hire a large consultancy for a full assessment.",
+        "pros": [
+          "Brand recognition with auditors",
+          "Broad scope"
+        ],
+        "cons": [
+          "Very high cost",
+          "Fixed calendar slots"
+        ],
+        "cost_usd_per_month": 14000,
+        "time_to_ship_weeks": 5
+      }
+    ]
+  },
+  {
+    "id": "dec-014",
+    "title": "Should we consolidate 22 repositories into a monorepo?",
+    "context": "Cross-repo changes take days because every shared library change needs a version bump and follow-up pull requests. Engineers disagree about whether tooling cost outweighs the coordination win. CI spend is already visible to finance.",
+    "constraints": [
+      "CI spend of $1,800 per month or less",
+      "P90 build time of 12 minutes or less",
+      "Migration finished within 12 weeks",
+      "25 engineers must keep shipping during the move"
+    ],
+    "options": [
+      {
+        "name": "Keep polyrepo with release tooling",
+        "description": "Stay with separate repos and automate version bumps.",
+        "pros": [
+          "Lowest disruption",
+          "Team autonomy stays intact"
+        ],
+        "cons": [
+          "Coordination cost remains",
+          "Dependency drift"
+        ],
+        "cost_usd_per_month": 900,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Monorepo with Nx",
+        "description": "Merge repos and use Nx with remote caching.",
+        "pros": [
+          "Gentler adoption",
+          "Good JS and TS support"
+        ],
+        "cons": [
+          "Weaker polyglot support",
+          "Cache tuning required"
+        ],
+        "cost_usd_per_month": 1200,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "Monorepo with Bazel",
+        "description": "Merge repos and adopt Bazel for hermetic, cached builds.",
+        "pros": [
+          "Precise incremental builds",
+          "Scales to many languages"
+        ],
+        "cons": [
+          "Steep learning curve",
+          "Heavy migration"
+        ],
+        "cost_usd_per_month": 1600,
+        "time_to_ship_weeks": 11
+      }
+    ]
+  },
+  {
+    "id": "dec-015",
+    "title": "GraphQL or REST for the new mobile API?",
+    "context": "The mobile app is being rebuilt and screens over-fetch data from a dozen REST endpoints. Backend has four engineers and a hard release date tied to a marketing campaign. The team has used REST for years and GraphQL only in a prototype.",
+    "constraints": [
+      "Mobile release in 10 weeks or less",
+      "P95 API latency of 400 ms or less",
+      "Added infrastructure of $2,000 per month or less",
+      "Only 4 backend engineers"
+    ],
+    "options": [
+      {
+        "name": "gRPC with gateway",
+        "description": "Adopt gRPC services with a JSON transcoding gateway.",
+        "pros": [
+          "Efficient wire format",
+          "Contract-first design"
+        ],
+        "cons": [
+          "Tooling unfamiliar to mobile team",
+          "Longest build"
+        ],
+        "cost_usd_per_month": 1000,
+        "time_to_ship_weeks": 12
+      },
+      {
+        "name": "GraphQL gateway",
+        "description": "Add a GraphQL layer that composes existing services.",
+        "pros": [
+          "Clients fetch exactly what they need",
+          "Strong typed schema"
+        ],
+        "cons": [
+          "N+1 query risks",
+          "Caching is harder"
+        ],
+        "cost_usd_per_month": 1400,
+        "time_to_ship_weeks": 9
+      },
+      {
+        "name": "REST with backend-for-frontend",
+        "description": "Add a mobile-specific REST aggregation service.",
+        "pros": [
+          "Familiar to the team",
+          "Easy HTTP caching"
+        ],
+        "cons": [
+          "Endpoint sprawl",
+          "Tight coupling to screens"
+        ],
+        "cost_usd_per_month": 900,
+        "time_to_ship_weeks": 7
+      }
+    ]
+  },
+  {
+    "id": "dec-016",
+    "title": "Which message broker should carry order events?",
+    "context": "Order events drive fulfillment, billing and notifications and must be processed in order per customer. Peak traffic is expected to reach 50,000 messages per second during promotions. The team has never run a streaming platform.",
+    "constraints": [
+      "Preserve per-key ordering",
+      "Sustain 50,000 messages per second",
+      "Budget of $3,000 per month or less",
+      "Ship in 6 weeks or less"
+    ],
+    "options": [
+      {
+        "name": "Standard SQS queues",
+        "description": "Use SQS standard queues with consumers per service.",
+        "pros": [
+          "Very cheap",
+          "No servers"
+        ],
+        "cons": [
+          "No ordering guarantee",
+          "Duplicate delivery"
+        ],
+        "cost_usd_per_month": 1100,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Self-managed Kafka",
+        "description": "Deploy and operate a Kafka cluster ourselves.",
+        "pros": [
+          "Industry standard for ordered streams",
+          "Unbounded throughput"
+        ],
+        "cons": [
+          "Team lacks Kafka experience",
+          "About 12 weeks to production"
+        ],
+        "cost_usd_per_month": 2400,
+        "time_to_ship_weeks": 12
+      },
+      {
+        "name": "Managed NATS JetStream",
+        "description": "Use a managed NATS JetStream service with subject-based partitioning.",
+        "pros": [
+          "Ordered consumers and high throughput",
+          "Small operational footprint"
+        ],
+        "cons": [
+          "Smaller ecosystem",
+          "Newer to the team"
+        ],
+        "cost_usd_per_month": 2200,
+        "time_to_ship_weeks": 5
+      },
+      {
+        "name": "SQS FIFO queues",
+        "description": "Use SQS FIFO queues with message group IDs.",
+        "pros": [
+          "Ordering per group",
+          "Simple integration"
+        ],
+        "cons": [
+          "Throughput limits below 50,000 per second",
+          "Group hot-spotting"
+        ],
+        "cost_usd_per_month": 1600,
+        "time_to_ship_weeks": 3
+      }
+    ]
+  },
+  {
+    "id": "dec-017",
+    "title": "Where should the new customer API run?",
+    "context": "We are launching a public API that must serve global traffic with modest baseline load and sharp bursts. Engineers split between container and function-based approaches. The launch is tied to a partner integration.",
+    "constraints": [
+      "Infrastructure of $8,000 per month or less",
+      "P99 latency of 300 ms or less including cold starts",
+      "Live within 12 weeks",
+      "Team of 4 engineers"
+    ],
+    "options": [
+      {
+        "name": "ECS on Fargate",
+        "description": "Run containers on Fargate without managing nodes.",
+        "pros": [
+          "Container portability without cluster work",
+          "Steady latency"
+        ],
+        "cons": [
+          "Less ecosystem than Kubernetes",
+          "Slower scale-out"
+        ],
+        "cost_usd_per_month": 6300,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "Lambda with provisioned concurrency",
+        "description": "Use functions behind API Gateway with warm capacity.",
+        "pros": [
+          "Scales to zero and bursts",
+          "Little infrastructure work"
+        ],
+        "cons": [
+          "Provisioned concurrency erodes savings",
+          "Vendor lock-in"
+        ],
+        "cost_usd_per_month": 5400,
+        "time_to_ship_weeks": 7
+      },
+      {
+        "name": "Kubernetes on EKS",
+        "description": "Run containers on a managed Kubernetes cluster.",
+        "pros": [
+          "Portable workloads",
+          "Fine-grained scaling control"
+        ],
+        "cons": [
+          "Cluster operations overhead",
+          "Higher idle cost"
+        ],
+        "cost_usd_per_month": 7200,
+        "time_to_ship_weeks": 10
+      }
+    ]
+  },
+  {
+    "id": "dec-018",
+    "title": "Which CI provider should we migrate to?",
+    "context": "Our self-run CI is flaky and builds queue for 25 minutes at peak. Developers need both Linux and macOS runners for the mobile app. Finance capped tooling spend after last quarter.",
+    "constraints": [
+      "CI cost of $1,500 per month or less",
+      "P90 build time of 10 minutes or less",
+      "Linux and macOS runners required",
+      "Migration done within 4 weeks"
+    ],
+    "options": [
+      {
+        "name": "Buildkite with own agents",
+        "description": "Use Buildkite orchestration on our own agent fleet.",
+        "pros": [
+          "Control over hardware",
+          "Predictable performance"
+        ],
+        "cons": [
+          "We pay for agents plus license",
+          "Longer setup"
+        ],
+        "cost_usd_per_month": 1900,
+        "time_to_ship_weeks": 5
+      },
+      {
+        "name": "Jenkins, self-hosted",
+        "description": "Rebuild Jenkins on larger autoscaling agents.",
+        "pros": [
+          "Lowest license cost",
+          "Full plugin control"
+        ],
+        "cons": [
+          "Migration would take about 9 weeks",
+          "Same flakiness risk"
+        ],
+        "cost_usd_per_month": 600,
+        "time_to_ship_weeks": 9
+      },
+      {
+        "name": "GitHub Actions hosted runners",
+        "description": "Migrate workflows to GitHub Actions with larger hosted runners.",
+        "pros": [
+          "Already integrated with the repo",
+          "Linux and macOS available"
+        ],
+        "cons": [
+          "Minute pricing can spike",
+          "Workflow YAML rewrite"
+        ],
+        "cost_usd_per_month": 1300,
+        "time_to_ship_weeks": 3
+      },
+      {
+        "name": "CircleCI",
+        "description": "Move pipelines to CircleCI with macOS resource classes.",
+        "pros": [
+          "Fast startup and caching",
+          "Rich insights"
+        ],
+        "cons": [
+          "Credits push spend above budget",
+          "Different config syntax"
+        ],
+        "cost_usd_per_month": 2100,
+        "time_to_ship_weeks": 4
+      }
+    ]
+  },
+  {
+    "id": "dec-019",
+    "title": "Where should we store the new patient-facing data?",
+    "context": "We are adding a patient records feature to our scheduling product. Customers will ask for a business associate agreement before signing. The launch is tied to a clinic pilot.",
+    "constraints": [
+      "A signed BAA must be available",
+      "Budget of $5,000 per month or less",
+      "Go live within 8 weeks",
+      "Data must be encrypted at rest with customer-managed keys"
+    ],
+    "options": [
+      {
+        "name": "Multi-cloud active-active",
+        "description": "Split storage across two clouds for maximum resilience.",
+        "pros": [
+          "No single-provider dependency",
+          "Very high availability"
+        ],
+        "cons": [
+          "Complex key management",
+          "Doubles compliance surface"
+        ],
+        "cost_usd_per_month": 9000,
+        "time_to_ship_weeks": 10
+      },
+      {
+        "name": "On-prem colocation",
+        "description": "Buy hardware and colocate it in a certified facility.",
+        "pros": [
+          "Total control",
+          "Predictable long-term cost"
+        ],
+        "cons": [
+          "About 20 weeks to procure and certify",
+          "Large capital outlay"
+        ],
+        "cost_usd_per_month": 4500,
+        "time_to_ship_weeks": 20
+      },
+      {
+        "name": "Existing hosting provider without BAA",
+        "description": "Store records on the current hosting provider's standard database.",
+        "pros": [
+          "Live almost immediately",
+          "Cheapest"
+        ],
+        "cons": [
+          "Provider will not sign a BAA",
+          "Blocks the pilot"
+        ],
+        "cost_usd_per_month": 300,
+        "time_to_ship_weeks": 1
+      },
+      {
+        "name": "AWS with BAA and KMS",
+        "description": "Use AWS services covered by the BAA with customer-managed KMS keys.",
+        "pros": [
+          "BAA readily available",
+          "Encryption controls built in"
+        ],
+        "cons": [
+          "Vendor lock-in",
+          "Requires careful service selection"
+        ],
+        "cost_usd_per_month": 2800,
+        "time_to_ship_weeks": 6
+      }
+    ]
+  },
+  {
+    "id": "dec-020",
+    "title": "Should we go product-led or sales-led for the new tier?",
+    "context": "We are launching a team tier aimed at mid-market companies. Early trials show individual users love the product but budget owners rarely see it. Leadership wants first revenue before the fiscal midyear.",
+    "constraints": [
+      "Go-to-market spend of $45,000 per month or less",
+      "First revenue within 16 weeks",
+      "1 marketer and 2 engineers available",
+      "CAC payback within 12 months"
+    ],
+    "options": [
+      {
+        "name": "Founder-led plus two SDRs",
+        "description": "Founders sell to top prospects while two SDRs generate pipeline.",
+        "pros": [
+          "Fast learning from real buyers",
+          "Quickest to revenue"
+        ],
+        "cons": [
+          "Founder time is scarce",
+          "Hard to scale"
+        ],
+        "cost_usd_per_month": 44000,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "Channel partners",
+        "description": "Sell through implementation partners on revenue share.",
+        "pros": [
+          "Access to existing buyers",
+          "Low fixed cost"
+        ],
+        "cons": [
+          "Margin sharing",
+          "Little control of messaging"
+        ],
+        "cost_usd_per_month": 38000,
+        "time_to_ship_weeks": 15
+      },
+      {
+        "name": "Self-serve product-led",
+        "description": "Build in-product upgrade flows and lifecycle emails.",
+        "pros": [
+          "Scales without headcount",
+          "Low friction for users"
+        ],
+        "cons": [
+          "Slow to reach budget owners",
+          "Needs analytics setup"
+        ],
+        "cost_usd_per_month": 30000,
+        "time_to_ship_weeks": 14
+      }
+    ]
+  },
+  {
+    "id": "dec-021",
+    "title": "Datadog, Grafana Cloud or self-hosted Prometheus?",
+    "context": "The current metrics tool is aging and lacks tracing. Fifteen services need dashboards and alerts before a big customer onboarding. Engineers have strong opinions on both sides.",
+    "constraints": [
+      "Budget of $9,000 per month or less",
+      "30-day metric retention",
+      "Migration in 8 weeks or less",
+      "15 services across 3 teams"
+    ],
+    "options": [
+      {
+        "name": "Grafana Cloud",
+        "description": "Adopt Grafana Cloud with Prometheus-compatible ingestion.",
+        "pros": [
+          "Open standards",
+          "Lower price"
+        ],
+        "cons": [
+          "Fewer turnkey integrations",
+          "Dashboards must be rebuilt"
+        ],
+        "cost_usd_per_month": 4200,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "Self-hosted Prometheus and Mimir",
+        "description": "Run Prometheus with Mimir long-term storage ourselves.",
+        "pros": [
+          "Lowest run rate",
+          "Full control"
+        ],
+        "cons": [
+          "Operating HA storage",
+          "About 10 weeks to build"
+        ],
+        "cost_usd_per_month": 2900,
+        "time_to_ship_weeks": 10
+      },
+      {
+        "name": "Datadog",
+        "description": "Adopt Datadog for metrics, traces and alerting.",
+        "pros": [
+          "Best integrations",
+          "Fastest to value"
+        ],
+        "cons": [
+          "Premium pricing",
+          "Custom metric costs"
+        ],
+        "cost_usd_per_month": 8800,
+        "time_to_ship_weeks": 3
+      }
+    ]
+  },
+  {
+    "id": "dec-022",
+    "title": "Which datastore should hold the device telemetry stream?",
+    "context": "IoT devices are sending telemetry at rates that our general-purpose database cannot absorb. Product wants dashboards over the last 90 days. A three-person team owns data infrastructure.",
+    "constraints": [
+      "Ingest 200,000 events per second",
+      "P95 dashboard query under 500 ms over 90 days",
+      "Budget of $6,000 per month or less",
+      "Ship within 10 weeks"
+    ],
+    "options": [
+      {
+        "name": "ClickHouse Cloud",
+        "description": "Use managed ClickHouse with materialized views.",
+        "pros": [
+          "Very high ingest",
+          "Fast analytical queries"
+        ],
+        "cons": [
+          "Different SQL dialect",
+          "Updates are awkward"
+        ],
+        "cost_usd_per_month": 4800,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "TimescaleDB self-hosted",
+        "description": "Run TimescaleDB with compression and continuous aggregates.",
+        "pros": [
+          "SQL interface",
+          "Good compression"
+        ],
+        "cons": [
+          "Single-node ingest ceiling near 80,000 per second",
+          "We run the cluster"
+        ],
+        "cost_usd_per_month": 3100,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "InfluxDB Enterprise",
+        "description": "Use a licensed InfluxDB Enterprise cluster.",
+        "pros": [
+          "Purpose-built for time series",
+          "Mature tooling"
+        ],
+        "cons": [
+          "License cost",
+          "Query language migration"
+        ],
+        "cost_usd_per_month": 11000,
+        "time_to_ship_weeks": 5
+      },
+      {
+        "name": "Single Postgres node",
+        "description": "Tune the existing Postgres for higher write volume.",
+        "pros": [
+          "No new technology",
+          "Cheap"
+        ],
+        "cons": [
+          "Cannot sustain the ingest rate",
+          "Queries slow at scale"
+        ],
+        "cost_usd_per_month": 700,
+        "time_to_ship_weeks": 2
+      }
+    ]
+  },
+  {
+    "id": "dec-023",
+    "title": "How should we achieve our first SOC 2 report?",
+    "context": "Two mid-market deals are gated on a SOC 2 Type I report. There is no compliance staff, only a security-minded engineer with part-time capacity. The sales team wants a date they can quote to prospects.",
+    "constraints": [
+      "Type I report within 14 weeks",
+      "Tooling and audit fees of $4,000 per month or less",
+      "One part-time compliance owner",
+      "Must integrate with GitHub and AWS"
+    ],
+    "options": [
+      {
+        "name": "Spreadsheet plus auditor",
+        "description": "Track controls manually and engage an auditor directly.",
+        "pros": [
+          "Lowest cost",
+          "No new tooling"
+        ],
+        "cons": [
+          "Cannot finish in 14 weeks with part-time capacity",
+          "Evidence gathering is manual"
+        ],
+        "cost_usd_per_month": 500,
+        "time_to_ship_weeks": 20
+      },
+      {
+        "name": "Drata",
+        "description": "Adopt Drata for automated evidence collection.",
+        "pros": [
+          "Strong workflow tooling",
+          "Clear task assignments"
+        ],
+        "cons": [
+          "Higher price",
+          "Slower initial setup"
+        ],
+        "cost_usd_per_month": 3400,
+        "time_to_ship_weeks": 12
+      },
+      {
+        "name": "Managed consultancy",
+        "description": "Hire a consultancy to run the whole program.",
+        "pros": [
+          "Least internal effort",
+          "Fastest with expertise"
+        ],
+        "cons": [
+          "Highest total cost",
+          "Knowledge stays with consultants"
+        ],
+        "cost_usd_per_month": 3900,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "Vanta",
+        "description": "Adopt Vanta for continuous control monitoring and evidence.",
+        "pros": [
+          "Broad integrations",
+          "Auditor network"
+        ],
+        "cons": [
+          "Per-framework add-on fees",
+          "Still needs internal owner"
+        ],
+        "cost_usd_per_month": 2500,
+        "time_to_ship_weeks": 10
+      }
+    ]
+  },
+  {
+    "id": "dec-024",
+    "title": "How should we add search to the product catalog?",
+    "context": "Customers complain that search misses items when they mistype names. The catalog holds 20 million documents and is growing. Two engineers are available and no one has search operations experience.",
+    "constraints": [
+      "P95 query latency under 300 ms across 20 million documents",
+      "Typo tolerance required",
+      "Budget of $4,000 per month or less",
+      "Ship within 6 weeks"
+    ],
+    "options": [
+      {
+        "name": "Hosted Algolia",
+        "description": "Buy a premium hosted search product.",
+        "pros": [
+          "Best relevance tools",
+          "Fastest integration"
+        ],
+        "cons": [
+          "Record-based pricing exceeds budget",
+          "Data leaves our network"
+        ],
+        "cost_usd_per_month": 7800,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Managed Meilisearch cloud",
+        "description": "Use a hosted Meilisearch instance with typo tolerance enabled.",
+        "pros": [
+          "Typo tolerance by default",
+          "Simple to operate"
+        ],
+        "cons": [
+          "Younger ecosystem",
+          "Limited analytics"
+        ],
+        "cost_usd_per_month": 1400,
+        "time_to_ship_weeks": 4
+      },
+      {
+        "name": "Self-hosted Elasticsearch",
+        "description": "Run a three-node Elasticsearch cluster.",
+        "pros": [
+          "Highly flexible",
+          "Rich query features"
+        ],
+        "cons": [
+          "About 10 weeks to production",
+          "Operations burden"
+        ],
+        "cost_usd_per_month": 3600,
+        "time_to_ship_weeks": 10
+      },
+      {
+        "name": "Postgres full-text search",
+        "description": "Add tsvector indexes to the existing database.",
+        "pros": [
+          "No new infrastructure",
+          "Cheapest"
+        ],
+        "cons": [
+          "No native typo tolerance",
+          "Ranking is basic"
+        ],
+        "cost_usd_per_month": 500,
+        "time_to_ship_weeks": 3
+      }
+    ]
+  },
+  {
+    "id": "dec-025",
+    "title": "How should we structure on-call for the platform team?",
+    "context": "The platform team of six has been paging the same three senior engineers, and two are burning out. The service promises around-the-clock coverage. Finance approved a small on-call allowance.",
+    "constraints": [
+      "24/7 coverage of the pager",
+      "No engineer on call more than 1 week in 6",
+      "On-call pay budget of $3,000 per month or less",
+      "Rotation live within 4 weeks"
+    ],
+    "options": [
+      {
+        "name": "Rotation among three seniors",
+        "description": "Keep on-call with the three most experienced engineers.",
+        "pros": [
+          "Fastest response quality",
+          "No training needed"
+        ],
+        "cons": [
+          "Each on call 1 week in 3",
+          "Burnout risk"
+        ],
+        "cost_usd_per_month": 1800,
+        "time_to_ship_weeks": 1
+      },
+      {
+        "name": "Weekly rotation across all six",
+        "description": "Rotate primary on-call weekly across all six engineers with a paid stipend.",
+        "pros": [
+          "Even load",
+          "Shared ownership"
+        ],
+        "cons": [
+          "Juniors need runbooks and shadowing",
+          "Every engineer is affected"
+        ],
+        "cost_usd_per_month": 2400,
+        "time_to_ship_weeks": 3
+      },
+      {
+        "name": "Business-hours-only pager",
+        "description": "Page only during working hours and defer overnight alerts.",
+        "pros": [
+          "Cheapest",
+          "No night work"
+        ],
+        "cons": [
+          "Breaks the 24/7 promise",
+          "Delayed incident response"
+        ],
+        "cost_usd_per_month": 0,
+        "time_to_ship_weeks": 1
+      },
+      {
+        "name": "Follow-the-sun contractor team",
+        "description": "Contract an external team to cover off-hours.",
+        "pros": [
+          "Removes night pages",
+          "Round-the-clock coverage"
+        ],
+        "cons": [
+          "High cost",
+          "Contractors lack context"
+        ],
+        "cost_usd_per_month": 5500,
+        "time_to_ship_weeks": 6
+      }
+    ]
+  },
+  {
+    "id": "dec-026",
+    "title": "Trunk-based development or weekly release trains?",
+    "context": "Deploys are batched into a Thursday release and hotfixes are frequent. Engineering wants faster flow while compliance needs traceable approvals. Thirty engineers work across four squads.",
+    "constraints": [
+      "Change failure rate of 15 percent or less",
+      "Adopt within 6 weeks",
+      "Every production change has a recorded approval",
+      "Tooling spend of $2,500 per month or less"
+    ],
+    "options": [
+      {
+        "name": "Weekly release train",
+        "description": "Keep a fixed weekly release with a stabilization branch.",
+        "pros": [
+          "Predictable cadence",
+          "Easy to approve in batches"
+        ],
+        "cons": [
+          "Long feedback loops",
+          "Bigger blast radius per release"
+        ],
+        "cost_usd_per_month": 0,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Trunk-based with flags",
+        "description": "Merge to main daily and hide unfinished work behind flags.",
+        "pros": [
+          "Fastest flow",
+          "Small diffs are easier to review"
+        ],
+        "cons": [
+          "Flag debt accumulates",
+          "Needs strong CI discipline"
+        ],
+        "cost_usd_per_month": 800,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "GitOps with progressive delivery",
+        "description": "Deploy through GitOps with canaries and automated rollback.",
+        "pros": [
+          "Safe automated rollout",
+          "Approvals encoded in Git"
+        ],
+        "cons": [
+          "New platform to learn",
+          "Highest tooling cost"
+        ],
+        "cost_usd_per_month": 2200,
+        "time_to_ship_weeks": 6
+      }
+    ]
+  },
+  {
+    "id": "dec-027",
+    "title": "Which acquisition channel should get the marketing budget?",
+    "context": "We sell a $6,000 annual contract to small engineering teams and want to grow pipeline this half. The board expects efficient growth, not spend for spend's sake. Marketing is one person plus a freelancer.",
+    "constraints": [
+      "Marketing spend of $20,000 per month or less",
+      "CAC payback within 12 months",
+      "First pipeline within 16 weeks",
+      "Only 1 in-house marketer"
+    ],
+    "options": [
+      {
+        "name": "Broad paid advertising",
+        "description": "Spend on paid social and search at scale.",
+        "pros": [
+          "Immediate traffic",
+          "Easy to scale"
+        ],
+        "cons": [
+          "Payback about 20 months",
+          "Lead quality varies"
+        ],
+        "cost_usd_per_month": 18000,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Conference sponsorships",
+        "description": "Sponsor three major developer conferences.",
+        "pros": [
+          "Brand visibility",
+          "Face-to-face relationships"
+        ],
+        "cons": [
+          "Payback about 15 months",
+          "Lumpy results"
+        ],
+        "cost_usd_per_month": 15000,
+        "time_to_ship_weeks": 10
+      },
+      {
+        "name": "Content and SEO program",
+        "description": "Publish technical content and target developer search terms.",
+        "pros": [
+          "Compounding organic traffic",
+          "Low cost per lead"
+        ],
+        "cons": [
+          "Slow to ramp",
+          "Needs consistent quality"
+        ],
+        "cost_usd_per_month": 9000,
+        "time_to_ship_weeks": 12
+      },
+      {
+        "name": "Outbound SDR team",
+        "description": "Hire SDRs for cold outreach into target accounts.",
+        "pros": [
+          "Direct control of pipeline",
+          "Quick feedback"
+        ],
+        "cons": [
+          "Cost exceeds budget",
+          "Hiring and ramp time"
+        ],
+        "cost_usd_per_month": 28000,
+        "time_to_ship_weeks": 8
+      }
+    ]
+  },
+  {
+    "id": "dec-028",
+    "title": "What should power self-serve analytics for business teams?",
+    "context": "Twelve business users depend on engineers for data pulls. The data lives in Postgres and Stripe exports, and analysts are not available. Leadership wants dashboards before the planning cycle.",
+    "constraints": [
+      "Budget of $5,000 per month or less",
+      "Self-serve for 12 business users",
+      "Live within 8 weeks",
+      "Row-level access controls for finance data"
+    ],
+    "options": [
+      {
+        "name": "Self-hosted Metabase",
+        "description": "Deploy Metabase against read replicas.",
+        "pros": [
+          "Fast to stand up",
+          "Very low cost"
+        ],
+        "cons": [
+          "Limited modeling layer",
+          "We handle upgrades"
+        ],
+        "cost_usd_per_month": 600,
+        "time_to_ship_weeks": 3
+      },
+      {
+        "name": "Looker",
+        "description": "Buy Looker with an LookML semantic layer.",
+        "pros": [
+          "Robust governed metrics",
+          "Strong permissions"
+        ],
+        "cons": [
+          "Expensive",
+          "Requires LookML skills"
+        ],
+        "cost_usd_per_month": 4600,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "dbt with Superset",
+        "description": "Model data in dbt and expose it through Apache Superset.",
+        "pros": [
+          "Version-controlled metrics",
+          "Flexible charts"
+        ],
+        "cons": [
+          "Two systems to run",
+          "Steeper setup"
+        ],
+        "cost_usd_per_month": 1400,
+        "time_to_ship_weeks": 7
+      }
+    ]
+  },
+  {
+    "id": "dec-029",
+    "title": "Event sourcing or CRUD with an audit table for the ledger?",
+    "context": "The ledger service needs an immutable history for regulators. Some engineers want event sourcing; others prefer a conventional model with an append-only audit table. Five engineers own the service.",
+    "constraints": [
+      "Complete audit trail retained 7 years",
+      "Ship within 14 weeks",
+      "Budget of $4,000 per month or less",
+      "Team of 5 engineers"
+    ],
+    "options": [
+      {
+        "name": "Event-sourced core",
+        "description": "Store all state changes as events and derive read models.",
+        "pros": [
+          "History is the source of truth",
+          "Easy temporal queries"
+        ],
+        "cons": [
+          "Steep learning curve",
+          "Schema evolution is hard"
+        ],
+        "cost_usd_per_month": 3600,
+        "time_to_ship_weeks": 13
+      },
+      {
+        "name": "CRUD plus append-only audit table",
+        "description": "Keep tables as is and write every change to an audit table.",
+        "pros": [
+          "Familiar model",
+          "Fast to build"
+        ],
+        "cons": [
+          "Audit table can drift from state",
+          "Weak temporal queries"
+        ],
+        "cost_usd_per_month": 2000,
+        "time_to_ship_weeks": 7
+      },
+      {
+        "name": "CDC into immutable storage",
+        "description": "Capture database changes and write them to write-once storage.",
+        "pros": [
+          "Audit independent of the app",
+          "No app rewrite"
+        ],
+        "cons": [
+          "Extra pipeline to run",
+          "Delay in the audit copy"
+        ],
+        "cost_usd_per_month": 2600,
+        "time_to_ship_weeks": 9
+      }
+    ]
+  },
+  {
+    "id": "dec-030",
+    "title": "Which email delivery provider should we use?",
+    "context": "Transactional and product emails now total 5 million per month and our current provider's price jumped at renewal. Deliverability matters because password resets fail when mail is delayed. We need to switch before renewal.",
+    "constraints": [
+      "Cost of $800 per month or less",
+      "5 million emails per month",
+      "Dedicated IP address required",
+      "Migration completed within 3 weeks"
+    ],
+    "options": [
+      {
+        "name": "Amazon SES",
+        "description": "Send through SES with a dedicated IP add-on.",
+        "pros": [
+          "Very low unit cost",
+          "Native AWS integration"
+        ],
+        "cons": [
+          "Sparse built-in analytics",
+          "Reputation warm-up is our job"
+        ],
+        "cost_usd_per_month": 500,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Mailgun Scale",
+        "description": "Move to Mailgun Scale with a dedicated IP.",
+        "pros": [
+          "Good API",
+          "Inbound routing"
+        ],
+        "cons": [
+          "Pricing exceeds budget",
+          "Fewer templates"
+        ],
+        "cost_usd_per_month": 900,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "SendGrid Pro",
+        "description": "Move to SendGrid Pro with a dedicated IP.",
+        "pros": [
+          "Rich analytics",
+          "Fast integration"
+        ],
+        "cons": [
+          "Above budget at this volume",
+          "Support tiers cost extra"
+        ],
+        "cost_usd_per_month": 1200,
+        "time_to_ship_weeks": 1
+      },
+      {
+        "name": "Self-hosted Postfix",
+        "description": "Run our own Postfix servers with dedicated IPs.",
+        "pros": [
+          "Cheapest per email",
+          "Full control"
+        ],
+        "cons": [
+          "About 8 weeks including reputation building",
+          "Ongoing deliverability duty"
+        ],
+        "cost_usd_per_month": 200,
+        "time_to_ship_weeks": 8
+      }
+    ]
+  },
+  {
+    "id": "dec-031",
+    "title": "Cloud GPUs or owned hardware for model inference?",
+    "context": "Our product embeds a fine-tuned model served on GPUs and demand is growing steadily. Finance is uneasy about the on-demand bill. The team must preserve response times while cutting cost per request.",
+    "constraints": [
+      "P95 latency of 800 ms or less at 40 requests per second",
+      "Budget of $18,000 per month or less",
+      "Live within 10 weeks",
+      "No more than 1 ML platform engineer on the work"
+    ],
+    "options": [
+      {
+        "name": "Owned GPUs in colocation",
+        "description": "Buy GPU servers and colocate them.",
+        "pros": [
+          "Lowest cost at high utilization",
+          "Full control"
+        ],
+        "cons": [
+          "About 14 weeks to procure and rack",
+          "Capital outlay"
+        ],
+        "cost_usd_per_month": 7000,
+        "time_to_ship_weeks": 14
+      },
+      {
+        "name": "Reserved one-year GPU commitment",
+        "description": "Commit to a one-year reservation for base load.",
+        "pros": [
+          "About one third cheaper",
+          "Stable capacity"
+        ],
+        "cons": [
+          "Locked in for a year",
+          "Overflow needs on-demand"
+        ],
+        "cost_usd_per_month": 10200,
+        "time_to_ship_weeks": 4
+      },
+      {
+        "name": "On-demand cloud GPUs",
+        "description": "Serve on autoscaled on-demand GPU instances.",
+        "pros": [
+          "Elastic capacity",
+          "Fastest to launch"
+        ],
+        "cons": [
+          "Highest unit cost",
+          "Capacity shortages at peak"
+        ],
+        "cost_usd_per_month": 15500,
+        "time_to_ship_weeks": 3
+      }
+    ]
+  },
+  {
+    "id": "dec-032",
+    "title": "How should we architect for a second region?",
+    "context": "Customers in Europe and Asia are asking for lower latency and regional resilience. The current system is a well-factored monolith owned by five engineers. Leadership wants multi-region before the annual customer conference.",
+    "constraints": [
+      "Multi-region live within 12 weeks",
+      "Infrastructure of $9,000 per month or less",
+      "Zero-downtime deployments",
+      "Team of 5 engineers"
+    ],
+    "options": [
+      {
+        "name": "Serverless rewrite",
+        "description": "Rewrite the app on serverless functions and global databases.",
+        "pros": [
+          "Global by default",
+          "Pay per use"
+        ],
+        "cons": [
+          "About 20 weeks to rewrite",
+          "Cold start tuning"
+        ],
+        "cost_usd_per_month": 5000,
+        "time_to_ship_weeks": 20
+      },
+      {
+        "name": "Stay single-region with CDN",
+        "description": "Cache aggressively at the edge and remain in one region.",
+        "pros": [
+          "Cheapest and quick",
+          "No architecture change"
+        ],
+        "cons": [
+          "Does not provide multi-region resilience",
+          "Dynamic calls stay slow"
+        ],
+        "cost_usd_per_month": 4000,
+        "time_to_ship_weeks": 1
+      },
+      {
+        "name": "Full microservices split",
+        "description": "Break the monolith into services and deploy each per region.",
+        "pros": [
+          "Independent scaling",
+          "Clear ownership"
+        ],
+        "cons": [
+          "About 26 weeks of work",
+          "Distributed debugging burden"
+        ],
+        "cost_usd_per_month": 14000,
+        "time_to_ship_weeks": 26
+      },
+      {
+        "name": "Modular monolith with regional replicas",
+        "description": "Keep the monolith, isolate modules, and add read replicas per region.",
+        "pros": [
+          "Least change to code",
+          "Fast to deliver"
+        ],
+        "cons": [
+          "Writes still centralized",
+          "Requires careful module boundaries"
+        ],
+        "cost_usd_per_month": 6500,
+        "time_to_ship_weeks": 10
+      }
+    ]
+  },
+  {
+    "id": "dec-033",
+    "title": "How should we manage secrets across our Kubernetes services?",
+    "context": "Secrets live in CI variables and a shared password manager, and two credentials were found in a repository last month. Twenty services run on Kubernetes across three environments. Security asked for a real system.",
+    "constraints": [
+      "Automatic rotation at least every 90 days",
+      "Full audit log of secret access",
+      "Cost of $1,000 per month or less",
+      "Complete within 5 weeks"
+    ],
+    "options": [
+      {
+        "name": "AWS Secrets Manager with External Secrets",
+        "description": "Store secrets in Secrets Manager and sync via External Secrets Operator.",
+        "pros": [
+          "Managed rotation and CloudTrail audit",
+          "Simple Kubernetes integration"
+        ],
+        "cons": [
+          "Per-secret fees",
+          "Tied to AWS"
+        ],
+        "cost_usd_per_month": 700,
+        "time_to_ship_weeks": 4
+      },
+      {
+        "name": "Self-hosted Vault HA",
+        "description": "Run HashiCorp Vault in high availability mode.",
+        "pros": [
+          "Dynamic secrets",
+          "Rich policy engine"
+        ],
+        "cons": [
+          "About 8 weeks to production",
+          "Operating Vault ourselves"
+        ],
+        "cost_usd_per_month": 1800,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "CI environment variables",
+        "description": "Keep secrets in CI variables and inject at deploy.",
+        "pros": [
+          "Already in place",
+          "Zero cost"
+        ],
+        "cons": [
+          "No rotation",
+          "No access audit trail"
+        ],
+        "cost_usd_per_month": 0,
+        "time_to_ship_weeks": 1
+      },
+      {
+        "name": "SOPS encrypted files in Git",
+        "description": "Encrypt secret files with SOPS and commit them.",
+        "pros": [
+          "Auditable through Git history",
+          "Very cheap"
+        ],
+        "cons": [
+          "No automatic rotation",
+          "Key distribution is manual"
+        ],
+        "cost_usd_per_month": 100,
+        "time_to_ship_weeks": 2
+      }
+    ]
+  },
+  {
+    "id": "dec-034",
+    "title": "Which market should we launch in first?",
+    "context": "The product is ready for a first international market after strong domestic traction. Legal has flagged data residency as the main hurdle. The launch needs to land inside one quarter.",
+    "constraints": [
+      "Launch within 12 weeks",
+      "Launch spend of $25,000 per month or less",
+      "Any EU customer data must be stored in the EU",
+      "Support coverage for local business hours"
+    ],
+    "options": [
+      {
+        "name": "United States first",
+        "description": "Launch in the US using existing infrastructure.",
+        "pros": [
+          "Fastest and cheapest",
+          "Same timezone as the team"
+        ],
+        "cons": [
+          "Crowded market",
+          "Smaller differentiation"
+        ],
+        "cost_usd_per_month": 12000,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "Simultaneous launch",
+        "description": "Launch in both markets together.",
+        "pros": [
+          "Maximum momentum",
+          "One campaign"
+        ],
+        "cons": [
+          "Stretches a small team",
+          "Highest spend"
+        ],
+        "cost_usd_per_month": 24000,
+        "time_to_ship_weeks": 12
+      },
+      {
+        "name": "Europe first",
+        "description": "Launch in the EU with a regional data stack and local support.",
+        "pros": [
+          "Large addressable market",
+          "Regulatory credibility"
+        ],
+        "cons": [
+          "Localization and legal overhead",
+          "Regional infrastructure spend"
+        ],
+        "cost_usd_per_month": 20000,
+        "time_to_ship_weeks": 10
+      }
+    ]
+  },
+  {
+    "id": "dec-035",
+    "title": "How should we replace the office VPN?",
+    "context": "The VPN gives every remote employee broad network access and its concentrator is nearing end of life. Security wants per-application access with logging. The company has 150 staff in nine countries.",
+    "constraints": [
+      "Budget of $2,500 per month or less",
+      "Per-application access logs",
+      "Cutover completed within 6 weeks",
+      "Works on macOS, Windows and Linux"
+    ],
+    "options": [
+      {
+        "name": "OpenVPN with logging plugin",
+        "description": "Keep OpenVPN and add connection logging.",
+        "pros": [
+          "Cheapest",
+          "Minimal change"
+        ],
+        "cons": [
+          "Network-level access only",
+          "No per-app logs"
+        ],
+        "cost_usd_per_month": 600,
+        "time_to_ship_weeks": 4
+      },
+      {
+        "name": "Tailscale",
+        "description": "Adopt Tailscale with ACLs and SSH session logging.",
+        "pros": [
+          "Quick to deploy",
+          "Peer-to-peer performance"
+        ],
+        "cons": [
+          "Third-party control plane",
+          "Logging needs configuration"
+        ],
+        "cost_usd_per_month": 1800,
+        "time_to_ship_weeks": 3
+      },
+      {
+        "name": "Cloudflare Access",
+        "description": "Front internal apps with Cloudflare Access and identity policies.",
+        "pros": [
+          "Clientless web app access",
+          "Strong identity integration"
+        ],
+        "cons": [
+          "Non-web protocols need extra setup",
+          "Longer app onboarding"
+        ],
+        "cost_usd_per_month": 1200,
+        "time_to_ship_weeks": 5
+      }
+    ]
+  },
+  {
+    "id": "dec-036",
+    "title": "How should we add three engineers with EU on-call coverage?",
+    "context": "Our users in Europe hit incidents during hours when no one on the team is awake. Leadership approved hiring three engineers this half. At least one must be able to carry an EU-daytime pager.",
+    "constraints": [
+      "Total added spend of $60,000 per month or less",
+      "Three engineers in seat within 12 weeks",
+      "EU-timezone on-call coverage",
+      "Must be employed or contracted with EU-compliant paperwork"
+    ],
+    "options": [
+      {
+        "name": "Offshore agency team",
+        "description": "Engage an agency team based in a distant timezone.",
+        "pros": [
+          "Cheapest per engineer",
+          "Fast start"
+        ],
+        "cons": [
+          "Timezone does not cover EU daytime",
+          "Contract lock-in"
+        ],
+        "cost_usd_per_month": 28000,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "Two senior US hires",
+        "description": "Hire two senior US engineers.",
+        "pros": [
+          "Experienced from day one",
+          "Fewer people to onboard"
+        ],
+        "cons": [
+          "Over budget and only two heads",
+          "No EU coverage"
+        ],
+        "cost_usd_per_month": 66000,
+        "time_to_ship_weeks": 10
+      },
+      {
+        "name": "EU hires through employer of record",
+        "description": "Hire three engineers in the EU using an employer-of-record service.",
+        "pros": [
+          "EU daytime coverage",
+          "Compliant contracts"
+        ],
+        "cons": [
+          "EOR fees add cost",
+          "Async handoffs with the US team"
+        ],
+        "cost_usd_per_month": 55000,
+        "time_to_ship_weeks": 10
+      },
+      {
+        "name": "Three US mid-level hires",
+        "description": "Hire three US mid-level engineers through normal recruiting.",
+        "pros": [
+          "Aligned with the current team",
+          "Simple payroll"
+        ],
+        "cons": [
+          "About 14 weeks to fill",
+          "No EU coverage"
+        ],
+        "cost_usd_per_month": 52000,
+        "time_to_ship_weeks": 14
+      }
+    ]
+  },
+  {
+    "id": "dec-037",
+    "title": "What discount structure should we offer for annual prepayment?",
+    "context": "Finance needs cash in the bank to cover a planned hardware purchase. Sales wants a prepay incentive to close renewals early. The board has a written policy on maximum discounts.",
+    "constraints": [
+      "At least $300,000 of cash collected within 8 weeks",
+      "Maximum discount of 20 percent per board policy",
+      "Sales team of 4 must handle the rollout",
+      "No change to list prices"
+    ],
+    "options": [
+      {
+        "name": "30 percent annual prepay discount",
+        "description": "Offer 30 percent off for full annual prepayment.",
+        "pros": [
+          "Strongest incentive",
+          "Fast uptake"
+        ],
+        "cons": [
+          "Exceeds the board policy",
+          "Deep margin hit"
+        ],
+        "cost_usd_per_month": 25000,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "Free extra month on annual",
+        "description": "Give a free month on annual contracts.",
+        "pros": [
+          "Cheap to explain",
+          "No price cut"
+        ],
+        "cons": [
+          "Projected only $120,000 cash",
+          "Revenue recognition complexity"
+        ],
+        "cost_usd_per_month": 6000,
+        "time_to_ship_weeks": 2
+      },
+      {
+        "name": "15 percent annual prepay discount",
+        "description": "Offer 15 percent off for annual prepayment with a 60-day window.",
+        "pros": [
+          "Within board policy",
+          "Projected $340,000 cash"
+        ],
+        "cons": [
+          "Some customers would have prepaid anyway",
+          "Needs deal desk tracking"
+        ],
+        "cost_usd_per_month": 14000,
+        "time_to_ship_weeks": 3
+      },
+      {
+        "name": "10 percent quarterly prepay discount",
+        "description": "Offer 10 percent off for quarterly prepayment.",
+        "pros": [
+          "Low discount cost",
+          "Improves cash flow gradually"
+        ],
+        "cons": [
+          "Projected only $180,000 within 8 weeks",
+          "More invoices"
+        ],
+        "cost_usd_per_month": 8000,
+        "time_to_ship_weeks": 3
+      }
+    ]
+  },
+  {
+    "id": "dec-038",
+    "title": "Which warehouse should hold our analytics data?",
+    "context": "Analytics queries are slowing the production database and finance wants reproducible reporting. About 4 TB of data must move to a proper warehouse. A two-person data team will run it.",
+    "constraints": [
+      "Budget of $3,500 per month or less",
+      "Migration within 10 weeks",
+      "Support 20 concurrent dashboard users",
+      "Data stays in a US region"
+    ],
+    "options": [
+      {
+        "name": "Redshift Serverless",
+        "description": "Use Redshift Serverless within the existing AWS account.",
+        "pros": [
+          "Same cloud as production",
+          "IAM integration"
+        ],
+        "cons": [
+          "Slower to tune",
+          "Concurrency scaling costs"
+        ],
+        "cost_usd_per_month": 3400,
+        "time_to_ship_weeks": 8
+      },
+      {
+        "name": "BigQuery",
+        "description": "Load data into BigQuery with on-demand pricing.",
+        "pros": [
+          "No infrastructure",
+          "Great for ad hoc scans"
+        ],
+        "cons": [
+          "Query costs are hard to predict",
+          "GCP dependency"
+        ],
+        "cost_usd_per_month": 2400,
+        "time_to_ship_weeks": 5
+      },
+      {
+        "name": "Snowflake",
+        "description": "Load data into Snowflake with auto-suspend warehouses.",
+        "pros": [
+          "Separate storage and compute",
+          "Easy sharing"
+        ],
+        "cons": [
+          "Credit costs can drift",
+          "Another vendor to manage"
+        ],
+        "cost_usd_per_month": 3100,
+        "time_to_ship_weeks": 6
+      }
+    ]
+  },
+  {
+    "id": "dec-039",
+    "title": "How should we run our container workloads in production?",
+    "context": "We have 25 services packaged as Helm charts and no dedicated operations staff beyond two platform engineers. Leadership wants a formal availability target. The current hand-built hosts are a single point of failure.",
+    "constraints": [
+      "99.9 percent availability SLA backed by the platform",
+      "Existing Helm charts for 25 services must run unchanged",
+      "Budget of $10,000 per month or less",
+      "Migration in 8 weeks or less"
+    ],
+    "options": [
+      {
+        "name": "Amazon EKS",
+        "description": "Run the charts on managed Kubernetes with managed node groups.",
+        "pros": [
+          "Managed control plane with SLA",
+          "Charts run as written"
+        ],
+        "cons": [
+          "Nodes still need patching",
+          "Add-on sprawl"
+        ],
+        "cost_usd_per_month": 8200,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "GKE Autopilot",
+        "description": "Run the charts on GKE Autopilot in a new cloud.",
+        "pros": [
+          "Fully managed nodes",
+          "Good defaults"
+        ],
+        "cons": [
+          "Exceeds budget at our footprint",
+          "Cross-cloud migration"
+        ],
+        "cost_usd_per_month": 11500,
+        "time_to_ship_weeks": 6
+      },
+      {
+        "name": "Nomad on virtual machines",
+        "description": "Move to HashiCorp Nomad and convert deployments.",
+        "pros": [
+          "Simple scheduler",
+          "Lower cost"
+        ],
+        "cons": [
+          "Helm charts must be rewritten",
+          "No platform SLA at this scale"
+        ],
+        "cost_usd_per_month": 5500,
+        "time_to_ship_weeks": 7
+      },
+      {
+        "name": "Self-managed kubeadm cluster",
+        "description": "Build and operate our own Kubernetes control plane.",
+        "pros": [
+          "Full control",
+          "Lowest license cost"
+        ],
+        "cons": [
+          "About 12 weeks to build safely",
+          "Two engineers own the control plane"
+        ],
+        "cost_usd_per_month": 7000,
+        "time_to_ship_weeks": 12
+      }
+    ]
+  },
+  {
+    "id": "dec-040",
+    "title": "How should we staff quality assurance for three squads?",
+    "context": "Escaped defects have risen and customers are noticing. Engineering leaders disagree on whether to add testers, buy capacity or make developers own testing. Three squads ship independently.",
+    "constraints": [
+      "Spend of $25,000 per month or less",
+      "Escaped defects of 5 per month or fewer",
+      "Operating within 10 weeks",
+      "Coverage for all three squads"
+    ],
+    "options": [
+      {
+        "name": "Embedded QA per squad",
+        "description": "Hire one QA engineer per squad.",
+        "pros": [
+          "Deep product context",
+          "Fast feedback in sprint"
+        ],
+        "cons": [
+          "Hiring lead time",
+          "Fixed headcount cost"
+        ],
+        "cost_usd_per_month": 24000,
+        "time_to_ship_weeks": 9
+      },
+      {
+        "name": "Outsourced QA vendor",
+        "description": "Contract a QA firm for regression and exploratory testing.",
+        "pros": [
+          "Quick to start",
+          "Flexible volume"
+        ],
+        "cons": [
+          "Weaker product knowledge",
+          "Handoff delays"
+        ],
+        "cost_usd_per_month": 14000,
+        "time_to_ship_weeks": 4
+      },
+      {
+        "name": "Developer-owned automation platform",
+        "description": "Invest in a test platform and make squads own quality.",
+        "pros": [
+          "Quality built in",
+          "Cheapest at steady state"
+        ],
+        "cons": [
+          "Slower to show results",
+          "Depends on team discipline"
+        ],
+        "cost_usd_per_month": 7000,
+        "time_to_ship_weeks": 10
+      }
+    ]
+  }
+]

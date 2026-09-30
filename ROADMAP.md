@@ -35,7 +35,7 @@ not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 
 - [x] #10 `spike`: FinFocus scoring belongs in finfocus repos. Closed 2026-09-29.
 - Research probes: recommendation scoring, duplicate detection, decision
-  spike, client survey (in `docs/`, uncommitted)
+  spike, client survey (in `docs/`)
 
 ## Boundary Safeguards
 
