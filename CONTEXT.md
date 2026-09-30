@@ -9,8 +9,10 @@ the `decide` skill. It turns Jev's `choice`, `score` and `noul` answers into
 values callers cannot misuse: typed option sets, validated probabilities and
 a result that forces the caller to handle low confidence.
 
-The repository is currently a research workspace (probes, spikes, a draft
-`finfocus-spec` proposal). No product Go code exists yet.
+The repository is a research workspace (probes, spikes, a draft
+`finfocus-spec` proposal) that has started to grow product code: `jevclient/`
+(the configured Jev client and its error classification) and `decision/` (the
+validated `Probability`, `Thresholds` and sealed `Result` types).
 
 ## Technical Boundaries ("Hard No's")
 
@@ -18,10 +20,15 @@ The repository is currently a research workspace (probes, spikes, a draft
   `decide` skill. `jev-decide` only supplies a fast-path pre-screen.
 - **No auto-approval.** Jev ranks well but is not calibrated (Brier 0.236).
   Output must never authorize an action without a human or a higher-cost
-  path. Low confidence escalates; it is never silently defaulted.
+  path. Low confidence escalates; it is never silently defaulted. A decided
+  result means clear enough to skip the debate, not approved.
 - **No silent zero values.** A missing or failed answer is a typed error,
   never a zero probability or an empty choice.
 - **No bare floats for probabilities.** Use the validated probability type.
+- **No choice below the confident level.** Only a decided result exposes a
+  choice to act on. An uncertain or escalate result exposes its leading option
+  under a name that says it is not a decision, and a failure is an error, never
+  a result.
 - **No unvalidated spend.** Decision-spec input is validated before any API
   call is made.
 - **No token in the repo.** `TYPESAFE_API_KEY` lives in the environment or
@@ -50,10 +57,14 @@ The repository is currently a research workspace (probes, spikes, a draft
 - **Inbound:** CLI commands (`ask`, `score`, `eval`) and a Go library API
   (`Choose[T ~string]` and typed option sets). Input is a decision spec
   validated before use.
-- **Outbound:** HTTPS `POST /v1/systemone` with bearer auth. `GET /v1/models`
+- **Outbound:** HTTPS `POST /v1/systemone` with bearer auth, through
+  `kataras/jev` (pinned) built only by `jevclient.NewClient`. `GET /v1/models`
   is the only other endpoint.
-- **Output:** versioned JSON with a sealed result type: decided, uncertain
-  or escalate.
+- **Output:** versioned JSON with a sealed result type, chosen by the answer's
+  confidence and two thresholds. Decided: at or above the confident level.
+  Uncertain: from the floor up to the confident level, for a person. Escalate:
+  below the floor, for the `decide` debate. Both thresholds (0.9 and 0.5) are
+  placeholders until #6 tunes them.
 
 ## Verification
 
@@ -66,3 +77,5 @@ A proposed feature violates the boundaries if it:
    `decide` skill.
 4. Embeds a credential or a non-TypeSafe endpoint.
 5. Changes an output schema without a version bump and golden test update.
+6. Turns a failure into a result case, or lets a result that was never
+   produced read as decided.

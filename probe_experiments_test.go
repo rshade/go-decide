@@ -266,9 +266,9 @@ func table(t *testing.T, header string, rows [][]string) {
 	var buf bytes.Buffer
 	tw := tabwriter.NewWriter(&buf, 0, 4, 2, ' ', 0)
 	for _, r := range rows {
-		fmt.Fprintln(tw, strings.Join(r, "\t"))
+		_, _ = fmt.Fprintln(tw, strings.Join(r, "\t"))
 	}
-	tw.Flush()
+	_ = tw.Flush()
 	t.Logf("%s\n%s", header, buf.String())
 }
 
@@ -559,8 +559,8 @@ func TestProbeBurst(t *testing.T) {
 				resp, err := c.SystemOne(context.Background(), jev.Request{State: without(full(recs[i%len(recs)]).(item), []string{"resource", "tags"}), Questions: jev.Questions{"risk": questionsV2()["risk"]}})
 				mu.Lock()
 				defer mu.Unlock()
-				switch {
-				case err == nil:
+				switch err {
+				case nil:
 					codes["ok"]++
 					spentMicroUSD.Add(int64(float64(resp.Usage.InputTokens) * pricePerMTok))
 					lats = append(lats, float64(time.Since(s).Milliseconds()))
@@ -736,7 +736,7 @@ func TestProbePriorityAlternatives(t *testing.T) {
 		exp := 0.0
 		for k, pr := range a["priority_choice"].Probabilities {
 			var lvl float64
-			fmt.Sscan(k, &lvl)
+			_, _ = fmt.Sscan(k, &lvl)
 			exp += lvl * pr
 		}
 		ch, pl, act = append(ch, exp), append(pl, a["priority_plain"].Score), append(act, a["act_now"].Noul)
