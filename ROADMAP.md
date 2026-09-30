@@ -12,9 +12,11 @@ not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 
 ## Immediate Focus (v0.1.0)
 
-- [ ] #1 Typed Jev client core [L]
-- [ ] #2 Validated Probability and sealed Result types [M]
-- [ ] #3 Validate decision spec before any API call [M]
+- [ ] #1 Typed Jev client core [L] (adapter over `kataras/jev`)
+- [ ] #2 Validated Probability and sealed Result types [M] (`decision/`;
+  thresholds are placeholders until #6)
+- [ ] #3 Validate decision spec before any API call [M] (must also reject a
+  nil `State`: `decision.Choose` does not, and it reaches the API as `null`)
 
 ## Near-Term Vision (v0.2.0)
 
@@ -27,13 +29,14 @@ not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 - [ ] #7 Fast-path pre-screen for the decide skill [M]
 - [ ] #8 Batching and pseudonymized identifiers [M]
 - [ ] #9 Spike: does the fast path hold on real past decisions? (timebox 1d)
-- [ ] #11 Spike: keep kataras/jev or write our own client? (timebox 2h)
 
 ## Completed Milestones
 
 ### 2026-Q3
 
 - [x] #10 `spike`: FinFocus scoring belongs in finfocus repos. Closed 2026-09-29.
+- [x] #11 `spike`: keep `kataras/jev`, do not write a client. Decided
+  2026-09-29; see `docs/jev-clients.md`.
 - Research probes: recommendation scoring, duplicate detection, decision
   spike, client survey (in `docs/`)
 

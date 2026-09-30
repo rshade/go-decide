@@ -110,7 +110,7 @@ func loadKey(t *testing.T) string {
 	if err != nil {
 		return ""
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		if k, v, ok := strings.Cut(strings.TrimSpace(sc.Text()), "="); ok && k == "TYPESAFE_API_KEY" {
@@ -223,12 +223,12 @@ func TestJevRecommendations(t *testing.T) {
 
 	var buf bytes.Buffer
 	tw := tabwriter.NewWriter(&buf, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(tw, "resource\tdeclared\tchosen\tconf\tsafe\turgency\tfalsepos\texpRisk\tms")
+	_, _ = fmt.Fprintln(tw, "resource\tdeclared\tchosen\tconf\tsafe\turgency\tfalsepos\texpRisk\tms")
 	for _, r := range results {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%d\n",
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%d\n",
 			r.rec.ID[strings.LastIndex(r.rec.ID, ":")+1:], r.rec.Type, r.action, r.actConf, r.safe, r.urgency, r.falsePos, r.rec.risk, r.latency.Milliseconds())
 	}
-	tw.Flush()
+	_ = tw.Flush()
 	t.Logf("\n%s", buf.String())
 
 	t.Run("risk ordering", func(t *testing.T) {

@@ -1,9 +1,19 @@
 # gojev
 
-Research workspace for a Go client for TypeSafe AI's Jev (System One) API. No
-Go code yet; the module path `github.com/rshade/gojev` is unpublished.
+Research workspace for a Go client for TypeSafe AI's Jev (System One) API, and
+the start of `jev-decide`. `jevclient/` and `decision/` hold the production Go
+code; the module path is `github.com/rshade/jev-decide` and is unpublished.
 
 ## Layout
+
+- `decision/`: `Probability`, `Thresholds`, `Options[T]`, `Choose[T ~string]`
+  and the sealed `Result[T]` (`Decided`, `Uncertain`, `Escalate`, consumed with
+  `Match`). Only `Decided` has `Choice()`. Failures are errors, never results.
+  Tests use `httptest` through `jevclient` and never read `.env`.
+- `jevclient/`: `NewClient` (env credential, https-or-loopback base URL, 429
+  and 529 retry only) and `Classify` (failures to `ax-go` `contract.Error`).
+  `docs/jev-errors.md` lists the error codes; a test fails if a code is
+  missing from it. Tests use `httptest` and never read `.env`.
 
 - `docs/spec/score-recommendations.md` and `docs/spec/recommendation_scoring.proto`:
   draft `finfocus-spec` proposal for a `RecommendationScorerService`, backed by
@@ -35,6 +45,15 @@ Go code yet; the module path `github.com/rshade/gojev` is unpublished.
   plugin or behind a new `finfocus-spec` RPC. Core also drops priority,
   confidence and utilization from plugin recommendations and its
   recommendation cache key ignores resource IDs.
+- Running `go test` in the repository root spends real money when `.env`
+  holds a key: the probe tests read `./.env` themselves, so unsetting
+  `TYPESAFE_API_KEY` does not stop them. Test the adapter with
+  `go test ./jevclient/...`. Spend for both probe rounds was about $0.12;
+  two accidental root runs on 2026-09-29 added an unmeasured amount.
+- `kataras/jev` v0.1.0 is adopted as the client (one commit, 5 stars; see
+  `docs/jev-clients.md` for the decision and risks). `ax-go` v0.7.0 needs Go
+  1.27.1, and importing only its `contract` package keeps OpenTelemetry and
+  gRPC out of `go.mod`. Unconfirmed: whether a 429 or 529 request is billed.
 - `jev_recommendations_test.go` is the live probe (`go test -run
   TestJevRecommendations -v -count=1`), built on `kataras/jev` and skipped
   without `TYPESAFE_API_KEY` (env or `.env`). Results and lessons are in
@@ -46,6 +65,19 @@ Go code yet; the module path `github.com/rshade/gojev` is unpublished.
   metadata carry the false-positive signal; batching up to about 80 records
   works; pseudonymized identifiers keep duplicate detection. Total Jev spend
   for both rounds was about $0.12.
+- Status: `finfocus-spec` v0.7.0 is released (PR #559). `finfocus` PRs #1572
+  (core scoring) and #1573 (`plugins/jev`) are open on branches `issue-1569`
+  and `issue-1570`. The finfocus repo's commitlint is v21 with
+  `config-conventional`; worktrees branch from `origin/main`, which moves, so
+  fast-forward and re-run `make lint` and `make test` before pushing.
+- grpc v1.84.0 (required by finfocus-spec v0.7.0) is affected by
+  GO-2026-6443; v1.83.2 and later `master` snapshots are fixed and no stable
+  v1.84.x has the fix. `finfocus` PRs pin snapshot
+  `v1.85.0-dev.0.20260825072537-93e31b48545e` for now. `finfocus-spec` PR #583
+  (issue #582) lowers the spec's requirement to v1.83.2 and adds a Renovate
+  exclusion; when it is released (a patch), bump the spec in finfocus PRs
+  #1572 and #1573 and replace the snapshot pin with grpc v1.83.2. The spec has
+  no govulncheck CI job.
 - Implementation is tracked in GitHub: `rshade/finfocus-spec#556` (scoring
   service, worktree `finfocus-spec-556`), `rshade/finfocus#1569` (retain full
   recommendations, cache-key fix, scoring step; worktree
@@ -83,3 +115,21 @@ Go code yet; the module path `github.com/rshade/gojev` is unpublished.
   issues #1 to #11 in `rshade/jev-decide`. Spikes use `spike` and
   `timebox/*` labels. #10 was closed as `kill`: recommendation scoring
   belongs in the finfocus repos, not here.
+- Result thresholds are two placeholders in `decision.DefaultThresholds()`: a
+  confident level of 0.9 (the spike's suggestion) and a floor of 0.5 (chosen
+  below the 0.58 mean confidence of contested decisions, not from data). Issue
+  #6 tunes them. One live call on a clear-cut release question came back at
+  0.69, which these defaults call `Uncertain`.
+- Issues are closed by the commit or PR message (`Closes #N` in
+  `PR_MESSAGE.md`), never by running `gh issue close`. Comments and body edits
+  on issues still need an explicit yes.
+- `decision.Choose` validates only its options, thresholds and client. It does
+  not validate `State`: a nil `State` reaches the API as `null` and costs a
+  round trip. Issue #3 owns that check.
+- Worktree cleanup 2026-09-30: removed 33 clean, merged worktrees (about 3.4 GB)
+  and pruned 2 missing ones. Kept `finfocus/.worktrees/issue-1198`, `issue-1506`,
+  `issue-1515` (uncommitted changes) and `issue-1523` (open PR #1580), and
+  `finfocus-spec-582` (open PR #583). Local branches of removed worktrees were
+  not deleted. Remove worktrees with `git worktree remove` without force after
+  checking dirty state, unpushed commits and PR state, and skip any whose issue
+  carries an active `processing:roadmap` claim.

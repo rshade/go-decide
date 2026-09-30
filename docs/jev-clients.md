@@ -185,17 +185,52 @@ in `.env`, which is gitignored, never in code.
   maps it to a useful error. Invalid key gives 401; the earlier 403 was a
   request with no auth header at all.
 - [ ] Invalid request (no questions, more than 10 score levels): 422 body is
-  surfaced.
+  surfaced. Covered offline by the `jevclient` tests; not observed live.
 - [ ] Rate limit or 529 handling: does retry honour `retry-after`. A burst of
   120 requests at concurrency 40 produced no 429s (the server queues, about
-  21 requests per second), so the retry path was not exercised.
+  21 requests per second), so the retry path was not exercised live. The
+  `jevclient` tests cover it against a synthetic server only.
 - [x] Request ID (`x-typesafe-request-id`) is exposed on errors.
-- [ ] Context cancellation and timeout stop the call promptly.
+- [ ] Context cancellation and timeout stop the call promptly. Covered offline
+  by the `jevclient` tests; not observed live.
 - [x] Measure latency against the documented 70-500 ms.
 - [ ] Confirm the token terms in the Master Customer Agreement allow a
   published third-party client.
 
-Decision to make afterwards: adopt one client as-is, contribute upstream, or
-build `gojev` with a distinct value (for example, a client generated from
-the OpenAPI spec). If building, note that `taigrr/gojev` and
-`wawan93/gojev` already use the name.
+## Decision (2026-09-29)
+
+`kataras/jev` is adopted, pinned at v0.1.0, and is the only client jev-decide
+uses. It closes the client spike (#11) and reshapes #1: the module does not
+write a client, it configures this one through `jevclient.NewClient` and
+classifies failures through `jevclient.Classify` (see
+[jev-errors.md](jev-errors.md)).
+
+Why: it scored highest on the survey (tied with `anilsenay/jev` on paper) and
+is the only client run live, and it already rejects every malformed 2xx
+response (missing answer, wrong type, value outside 0 to 1), refuses
+redirects and exposes the request ID.
+
+What the adapter adds, because the dependency's defaults do not fit:
+
+- The base URL must be `https`, or `http` to a loopback IP address. The
+  dependency accepts `http` for any host.
+- Only 429 and 529 are retried, at most twice. The dependency's default also
+  retries 408, every 5xx, timeouts and connection failures, with no time
+  budget.
+- `error_type` from the `{"detail": {...}}` body is kept. The dependency
+  discards it.
+- The API key is redacted from logs and classified errors. The dependency
+  redacts request headers only, so an echoed key would reach debug logs.
+
+Risks to keep in view:
+
+- One commit, 5 stars, v0.1.0, maintainer score 3 in the survey. Pin the exact
+  version and read the diff on every bump. The adapter is two functions, so
+  replacing it stays a one-package change.
+- Whether TypeSafe bills a request that returns 429 or 529 is unconfirmed. The
+  retry policy assumes it does not. The retry list is one constant in
+  `jevclient`.
+- `anilsenay/jev`, `Gaurav-Gosain/jev-go` and `mattn/go-jev` were never run
+  against the API, so "best client" rests on `kataras/jev` being the tested
+  one, not on a measured comparison.
+- The token terms in the Master Customer Agreement are still unread.

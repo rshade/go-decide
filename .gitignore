@@ -34,3 +34,4 @@ go.work.sum
 # Local secrets and probe cache
 .env
 .probe-cache/
+PR_MESSAGE.md

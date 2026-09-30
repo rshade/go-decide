@@ -1,4 +1,6 @@
 github.com/kataras/jev v0.1.0 h1:jMbEohhyCs4dGVMsYETOAPAxSJiUP5Y52TmAZwO+zbQ=
 github.com/kataras/jev v0.1.0/go.mod h1:IIYHZLWxcGgQKzxnJOys2zYbpHfZEtRXNSUn97fk92s=
+github.com/rshade/ax-go v0.7.0 h1:7+rS/pqbtySUl5fTR28rKDW5zVhGyKue2TD29kiYFFw=
+github.com/rshade/ax-go v0.7.0/go.mod h1:EKtQiJyGtbOKTRo+WnjhM2WRm/VNVAhpZuaAsm7AUeY=
 golang.org/x/time v0.16.0 h1:vMb6ptszcQMkcwiRTAuNNU50gom6++Q/6gY2hDM6VDE=
 golang.org/x/time v0.16.0/go.mod h1:rVKOqvZeKvrDKTQiAHJ7wmwP0RzleSphoEA9RcdLA0s=
