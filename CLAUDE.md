@@ -1,164 +1,114 @@
-# gojev
+# CLAUDE.md
 
-Research workspace for a Go client for TypeSafe AI's Jev (System One) API, and
-the start of `jev-decide`. `jevclient/` and `decision/` hold the production Go
-code; the module path is `github.com/rshade/jev-decide` and is unpublished.
+<!-- markdownlint-disable-next-line MD013 -->
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Layout
+## What this is
 
-- `decision/`: `Probability`, `Thresholds`, `Options[T]`, `Choose[T ~string]`
-  and the sealed `Result[T]` (`Decided`, `Uncertain`, `Escalate`, consumed with
-  `Match`). Only `Decided` has `Choice()`. Failures are errors, never results.
-  Tests use `httptest` through `jevclient` and never read `.env`.
-- `decision/` also has `Rate` over ordered `Levels` (2 to 10) with a sealed
-  `ScoreResult` (`ScoreDecided` has `Level()`, consumed with `MatchScore`), and
-  `Spec`: the decision-spec document (`ParseSpec`, `MergeFlags`, then `Question`
-  or `RateQuestion`), where duplicate names are caught.
-- `internal/cli/`: `ask` and `score` on `ax.Execute`. Output is a `contract`
-  envelope with `data.schema_version`; exit 0 decided, 10 uncertain, 11
-  escalate, and `ax` codes 1 to 4 for failures. `docs/jev-decide-cli.md` lists
-  them and a test fails if one is missing. `--dry-run` (mounted by `ax.Execute`)
-  validates and stops without a request or a key. Golden files in
-  `internal/cli/testdata/golden/` pin each output and `__schema` per version;
-  regenerate with `go test ./internal/cli -run Golden -update`, and a shape
-  change needs a `SchemaVersion` bump.
-- `jevclient/`: `NewClient` (env credential, https-or-loopback base URL, 429
-  and 529 retry only) and `Classify` (failures to `ax-go` `contract.Error`).
-  `docs/jev-errors.md` lists the error codes; a test fails if a code is
-  missing from it. Tests use `httptest` and never read `.env`.
+`jev-decide`: a typed Go library and CLI for TypeSafe AI's Jev (System One)
+model, for fast-path decision support. The module path is
+`github.com/rshade/jev-decide`; the local directory is still named `gojev`, so
+do not rename it. `gojev` is taken upstream (`taigrr/gojev`, `wawan93/gojev`).
 
-- `docs/spec/score-recommendations.md` and `docs/spec/recommendation_scoring.proto`:
-  draft `finfocus-spec` proposal for a `RecommendationScorerService`, backed by
-  `docs/probe-round2-2026-09-28.md`.
-- `testdata/`: synthetic recommendations, pairs and two blind label files used
-  by `probe_*_test.go`. `.probe-cache/` holds cached API responses (gitignored).
-- `docs/jev-clients.md`: comparison of community Go clients and the checklist
-  to run once an API token is available.
-- `docs/reference/typesafe-openapi.json`: official OpenAPI spec snapshot
-  (2026-09-28). Re-fetch from `https://api.typesafe.ai/openapi.json`.
-- `docs/snapshots/*.tsv`: dated client metadata snapshots.
-- `scripts/refresh-jev-clients.sh`: refreshes stars, tags and proxy versions
-  for repos in `scripts/jev-clients.txt` (`--save` writes a snapshot).
+Read `CONTEXT.md` before designing anything. Its "Hard No's" and verification
+list are the review bar: no auto-approval, no silent zero values, no bare-float
+probabilities, no API spend before validation, no schema change without a
+version bump, and no debate logic (that stays in the `decide` skill).
+`ROADMAP.md` maps work to GitHub issues in `rshade/jev-decide`.
 
-## Project knowledge
+## Commands
 
-- Jev is TypeSafe AI's System One model, not a file format or protocol.
-  Endpoint `POST https://api.typesafe.ai/v1/systemone`, bearer auth, key in
-  `TYPESAFE_API_KEY`. Keys come from `console.typesafe.ai/keys`.
-- No official Go SDK exists. `gojev` is already the name of
-  `taigrr/gojev` and `wawan93/gojev`.
-- Avoid `openjevai/jev`: it can route data through an unverified third-party
-  gateway.
-- Keep the API token in `.env` only. Never commit it.
-- Clone review targets into the session scratchpad, not this directory.
-- FinFocus (`rshade/finfocus`) is the candidate consumer for recommendation
-  triage. Its core generates no recommendations (plugins do, over gRPC) and
-  forbids external API clients in core, so a Jev integration belongs in a
-  plugin or behind a new `finfocus-spec` RPC. Core also drops priority,
-  confidence and utilization from plugin recommendations and its
-  recommendation cache key ignores resource IDs.
-- Running `go test` in the repository root spends real money when `.env`
-  holds a key: the probe tests read `./.env` themselves, so unsetting
-  `TYPESAFE_API_KEY` does not stop them. Test the adapter with
-  `go test ./jevclient/...`. Spend for both probe rounds was about $0.12;
-  two accidental root runs on 2026-09-29 added an unmeasured amount.
-- `kataras/jev` v0.1.0 is adopted as the client (one commit, 5 stars; see
-  `docs/jev-clients.md` for the decision and risks). `ax-go` v0.7.0 needs Go
-  1.27.1. The CLI (`internal/cli`, `cmd/jev-decide`) runs on `ax.Execute`, which
-  links OpenTelemetry and gRPC; `decision` and `jevclient` import only
-  `contract`, and a test in `internal/cli` fails if they pick up the heavy
-  packages. Unconfirmed: whether a 429 or 529 request is billed.
-- `jev_recommendations_test.go` is the live probe (`go test -run
-  TestJevRecommendations -v -count=1`), built on `kataras/jev` and skipped
-  without `TYPESAFE_API_KEY` (env or `.env`). Results and lessons are in
-  `docs/probe-2026-09-28.md`: use Jev for gating and labelling, not ranking.
-  Its noul and score outputs vary slightly between identical calls.
-- Round 2 findings: Jev ranks risk and false positive well against blind
-  labels (AUC about 0.91) but is not calibrated (Brier 0.236) and must not
-  auto-approve. Core's reduced recommendation loses 0.1 to 0.26 AUC; tags and
-  metadata carry the false-positive signal; batching up to about 80 records
-  works; pseudonymized identifiers keep duplicate detection. Total Jev spend
-  for both rounds was about $0.12.
-- Status: `finfocus-spec` v0.7.0 is released (PR #559). `finfocus` PRs #1572
-  (core scoring) and #1573 (`plugins/jev`) are open on branches `issue-1569`
-  and `issue-1570`. The finfocus repo's commitlint is v21 with
-  `config-conventional`; worktrees branch from `origin/main`, which moves, so
-  fast-forward and re-run `make lint` and `make test` before pushing.
-- grpc v1.84.0 (required by finfocus-spec v0.7.0) is affected by
-  GO-2026-6443; v1.83.2 and later `master` snapshots are fixed and no stable
-  v1.84.x has the fix. `finfocus` PRs pin snapshot
-  `v1.85.0-dev.0.20260825072537-93e31b48545e` for now. `finfocus-spec` PR #583
-  (issue #582) lowers the spec's requirement to v1.83.2 and adds a Renovate
-  exclusion; when it is released (a patch), bump the spec in finfocus PRs
-  #1572 and #1573 and replace the snapshot pin with grpc v1.83.2. The spec has
-  no govulncheck CI job.
-- Implementation is tracked in GitHub: `rshade/finfocus-spec#556` (scoring
-  service, worktree `finfocus-spec-556`), `rshade/finfocus#1569` (retain full
-  recommendations, cache-key fix, scoring step; worktree
-  `finfocus/.worktrees/issue-1569`) and `rshade/finfocus#1570` (Jev scorer
-  plugin at `plugins/jev/`, worktree `finfocus/.worktrees/issue-1570`). All
-  changes there are uncommitted by design; the plugin builds against the spec
-  worktree through a temporary `replace` that must be removed before merge.
-- CLI/library name: `jev-decide`. GitHub repo
-  `git@github.com:rshade/jev-decide.git` (has only the initial LICENSE, README
-  and `.gitignore`); this directory is a
-  git checkout of it on `main` with nothing committed or pushed, and `go.mod`
-  already uses `github.com/rshade/jev-decide`. The local directory is still
-  named `gojev`; do not rename it while implementation agents read it by
-  path. Scope: thin typed Jev client, `ask`, `score` and `eval` commands on
-  `ax-go`, and an optional fast-path pre-screen for the `decide` skill. The
-  debate protocol itself stays in the skill.
-- `jev-decide` must be typed so callers can rely on it: generic Go API over
-  typed option sets (`Choose[T ~string]`), a validated probability type
-  instead of bare floats, a sealed result type (decided, uncertain, escalate)
-  so callers must handle low confidence, typed errors and no silent zero
-  values, versioned JSON output schemas exposed through `ax-go` `__schema` and
-  pinned by golden tests, and decision-spec input validated before any API
-  call is spent.
-- `finfocus-spec` PR #559 (branch `556-recommendation-scoring`, five commits)
-  is open. Its CI runs commitlint v21; a local v20 accepted a body line that
-  began with `word:` which v21 parses as a footer. Validate messages with the
-  CI version (`npm i @commitlint/cli@21.2.3` in a scratch dir), and never
-  start a commit-body line with `word:`.
-- `mise.toml` pins OpenSpec (`npm:@fission-ai/openspec`, the tool ID is not
-  `openspec`). Run it as `mise exec -- openspec ...`. `openspec init` needs
-  `--tools claude` when non-interactive. It generated `openspec/` and 12
-  skills plus 12 commands in `.claude/` (`/opsx:propose`, `/opsx:apply`, ...).
-  markdownlint passes with them present, so no ignore entries yet.
-- `CONTEXT.md` (boundaries) and `ROADMAP.md` are tracked against GitHub
-  issues #1 to #11 in `rshade/jev-decide`. Spikes use `spike` and
-  `timebox/*` labels. #10 was closed as `kill`: recommendation scoring
-  belongs in the finfocus repos, not here.
-- Result thresholds are two placeholders in `decision.DefaultThresholds()`: a
-  confident level of 0.9 (the spike's suggestion) and a floor of 0.5 (chosen
-  below the 0.58 mean confidence of contested decisions, not from data). Issue
-  #6 tunes them. One live call on a clear-cut release question came back at
-  0.69, which these defaults call `Uncertain`.
-- Issues are closed by the commit or PR message (`Closes #N` in
-  `PR_MESSAGE.md`), never by running `gh issue close`. Comments and body edits
-  on issues still need an explicit yes.
-- `decision.Choose` runs `Question.Validate` before any request: options, a
-  non-empty `State` (checked on its JSON, so typed nils and `{}` fail) and a
-  size estimate (bytes / 4 tokens, limit 32,000, deliberately generous).
-  Rejections are `*FieldError` values. `NewOptions` caps options at 255.
-  Duplicate names cannot occur in `Options` (map-built); the check belongs to
-  the future spec loader.
-- Worktree cleanup 2026-09-30: removed 33 clean, merged worktrees (about 3.4 GB)
-  and pruned 2 missing ones. Kept `finfocus/.worktrees/issue-1198`, `issue-1506`,
-  `issue-1515` (uncommitted changes) and `issue-1523` (open PR #1580), and
-  `finfocus-spec-582` (open PR #583). Local branches of removed worktrees were
-  not deleted. Remove worktrees with `git worktree remove` without force after
-  checking dirty state, unpushed commits and PR state, and skip any whose issue
-  carries an active `processing:roadmap` claim.
-- finfocus PRs opened 2026-09-30: #1595 (docs, dead link to the deleted
-  finfocus-mcp repo), #1596 (#1506, breaking exit code 2 for input errors) and
-  #1597 (#1198, paralleltest adoption, includes the approved two-line
-  `.golangci.yml` change). `rshade/finfocus-mcp` was deleted by the owner, not
-  archived; its 18 issues were closed first and anomaly detection moved to
-  finfocus#1590. Seven wall-clock or order-dependent tests flake on finfocus
-  main (BoltStore TTL tests, history, CostActual date tests, ConfigInit) and
-  still need their own issue. #1595 and #1596 merged on 2026-10-01; their
-  clean worktrees `finfocus-docs-link` and `.worktrees/issue-1506` can be
-  removed. `issue-1198` stays until #1597 merges, `issue-1528` (PR #1594) and
-  `issue-1523` (uncommitted changes) stay, and `finfocus-mcp` is a clone of the
-  deleted repo holding one untracked file, `goa-ai-issue.md`.
+Go 1.27.1 is required (`ax-go` v0.7.0 needs it). There is no Makefile.
+
+```sh
+go build ./...
+# safe, no spend:
+go test ./decision/... ./jevclient/... ./internal/... ./cmd/...
+go test ./decision -run TestChooseTurnsConfidence -v   # single test
+go test ./internal/cli -run Golden -update   # rewrite golden files
+golangci-lint run ./...
+npx markdownlint-cli2 "**/*.md"   # .markdownlint.yaml disables MD013 for tables
+mise exec -- openspec ...         # OpenSpec is pinned in mise.toml
+```
+
+**Never run `go test ./...` or `go test` in the repository root casually.**
+The root `*_test.go` files are live probes and spikes that read `./.env`
+themselves, so unsetting `TYPESAFE_API_KEY` does not stop them, and they spend
+real money. Run one deliberately, e.g.
+`go test -run TestJevRecommendations -v -count=1`. The `live_test.go` files in
+`decision/` and `jevclient/` skip unless `TYPESAFE_API_KEY` is set in the
+environment (they do not read `.env`).
+
+## Architecture
+
+Three layers, with a dependency rule enforced by a test:
+
+- `jevclient/` wraps the pinned `kataras/jev` client. `NewClient` is the only
+  supported constructor: it reads the key from the environment, enforces an
+  https-or-loopback `TYPESAFE_BASE_URL`, never follows redirects, retries only
+  429/529, and redacts the key in logs. `Classify` maps failures to `ax-go`
+  `contract.Error` codes, which must all be listed in `docs/jev-errors.md`
+  (`docs_test.go` fails otherwise).
+- `decision/` is the typed domain. `Choose[T ~string]` (over `Options[T]`) and
+  `Rate` (over ordered `Levels`, 2 to 10) return sealed results:
+  `Result[T]` (`Decided`, `Uncertain`, `Escalate`, consumed with `Match`) and
+  `ScoreResult` (consumed with `MatchScore`). Only `Decided` has `Choice()` and
+  only `ScoreDecided` has `Level()`; the others expose `Leading()`. The case is
+  picked by confidence against `Thresholds` (`DefaultThresholds()`: confident
+  0.9, floor 0.5, both placeholders until issue #6). Failures are errors,
+  never result cases. `Question.Validate` runs before any request and returns
+  `*FieldError` (empty or typed-nil `State`, size estimate over 32k tokens at
+  bytes/4, more than 255 options). `Spec` is the JSON decision-spec document:
+  `ParseSpec`, `MergeFlags`, then `Question` or `RateQuestion`.
+- `internal/cli/` and `cmd/jev-decide/` implement `ask` and `score` on
+  `ax.Execute`. `cli.Run` takes an injectable `Env` (stdio, `Getenv`) so tests
+  never touch the process. Output is a `contract` envelope with
+  `data.schema_version`. Exit codes: 0 decided, 10 uncertain, 11 escalate,
+  `ax` codes 1 to 4 for failures; each must appear in `docs/jev-decide-cli.md`.
+  `--dry-run` validates and stops without a key or a request.
+
+`decision` and `jevclient` may import only `ax-go`'s `contract` package;
+`internal/cli/deps_test.go` fails if they pull in `ax`'s OpenTelemetry/gRPC
+dependencies.
+
+### Output schema versioning
+
+Golden files in `internal/cli/testdata/golden/` pin every outcome and the
+`__schema` output per version (`*.v1.json`). Any change to output shape needs a
+`SchemaVersion` bump plus a new set of golden files, not an edit to the
+existing ones.
+
+## Tests
+
+Unit tests use `httptest` through `jevclient` and never read `.env`. Keep it
+that way: new tests that need Jev must fake it with `httptest`.
+
+The root probe and spike tests (`probe_*_test.go`, `jev_*_test.go`) and
+`testdata/` are throwaway research evidence. Do not copy their code into
+production packages; rewrite instead. `.probe-cache/` holds cached API
+responses and is gitignored.
+
+## Research docs
+
+- `docs/reference/typesafe-openapi.json`: the API contract (re-fetch from
+  `https://api.typesafe.ai/openapi.json`). Only `POST /v1/systemone` and
+  `GET /v1/models` are used.
+- `docs/probe-*.md`, `docs/spike-decisions-2026-09-29.md`: empirical findings.
+  Jev ranks well (AUC about 0.91) but is not calibrated (Brier 0.236), so use
+  it for gating and labelling, never auto-approval. Answers vary slightly
+  between identical calls.
+- `docs/jev-clients.md`: why `kataras/jev` was adopted (and its risks), plus
+  `scripts/refresh-jev-clients.sh` to refresh client metadata snapshots.
+- `docs/spec/`: a draft `finfocus-spec` scoring proposal. Recommendation
+  scoring for FinFocus belongs in the finfocus repos, not here (issue #10).
+
+## Conventions
+
+- Key in `TYPESAFE_API_KEY` (from `console.typesafe.ai/keys`), kept in the
+  environment or the ignored `.env`. Never depend on `openjevai/jev` or any
+  non-TypeSafe gateway.
+- Issues close through `Closes #N` in `PR_MESSAGE.md` (gitignored), never via
+  `gh issue close`.
+- Commitlint in related repos is v21, which parses a body line starting with
+  `word:` as a footer; never start a commit-body line that way.
+- Clone repos under review into the session scratchpad, not this directory.
