@@ -10,6 +10,18 @@ code; the module path is `github.com/rshade/jev-decide` and is unpublished.
   and the sealed `Result[T]` (`Decided`, `Uncertain`, `Escalate`, consumed with
   `Match`). Only `Decided` has `Choice()`. Failures are errors, never results.
   Tests use `httptest` through `jevclient` and never read `.env`.
+- `decision/` also has `Rate` over ordered `Levels` (2 to 10) with a sealed
+  `ScoreResult` (`ScoreDecided` has `Level()`, consumed with `MatchScore`), and
+  `Spec`: the decision-spec document (`ParseSpec`, `MergeFlags`, then `Question`
+  or `RateQuestion`), where duplicate names are caught.
+- `internal/cli/`: `ask` and `score` on `ax.Execute`. Output is a `contract`
+  envelope with `data.schema_version`; exit 0 decided, 10 uncertain, 11
+  escalate, and `ax` codes 1 to 4 for failures. `docs/jev-decide-cli.md` lists
+  them and a test fails if one is missing. `--dry-run` (mounted by `ax.Execute`)
+  validates and stops without a request or a key. Golden files in
+  `internal/cli/testdata/golden/` pin each output and `__schema` per version;
+  regenerate with `go test ./internal/cli -run Golden -update`, and a shape
+  change needs a `SchemaVersion` bump.
 - `jevclient/`: `NewClient` (env credential, https-or-loopback base URL, 429
   and 529 retry only) and `Classify` (failures to `ax-go` `contract.Error`).
   `docs/jev-errors.md` lists the error codes; a test fails if a code is
@@ -52,8 +64,10 @@ code; the module path is `github.com/rshade/jev-decide` and is unpublished.
   two accidental root runs on 2026-09-29 added an unmeasured amount.
 - `kataras/jev` v0.1.0 is adopted as the client (one commit, 5 stars; see
   `docs/jev-clients.md` for the decision and risks). `ax-go` v0.7.0 needs Go
-  1.27.1, and importing only its `contract` package keeps OpenTelemetry and
-  gRPC out of `go.mod`. Unconfirmed: whether a 429 or 529 request is billed.
+  1.27.1. The CLI (`internal/cli`, `cmd/jev-decide`) runs on `ax.Execute`, which
+  links OpenTelemetry and gRPC; `decision` and `jevclient` import only
+  `contract`, and a test in `internal/cli` fails if they pick up the heavy
+  packages. Unconfirmed: whether a 429 or 529 request is billed.
 - `jev_recommendations_test.go` is the live probe (`go test -run
   TestJevRecommendations -v -count=1`), built on `kataras/jev` and skipped
   without `TYPESAFE_API_KEY` (env or `.env`). Results and lessons are in
@@ -136,3 +150,15 @@ code; the module path is `github.com/rshade/jev-decide` and is unpublished.
   not deleted. Remove worktrees with `git worktree remove` without force after
   checking dirty state, unpushed commits and PR state, and skip any whose issue
   carries an active `processing:roadmap` claim.
+- finfocus PRs opened 2026-09-30: #1595 (docs, dead link to the deleted
+  finfocus-mcp repo), #1596 (#1506, breaking exit code 2 for input errors) and
+  #1597 (#1198, paralleltest adoption, includes the approved two-line
+  `.golangci.yml` change). `rshade/finfocus-mcp` was deleted by the owner, not
+  archived; its 18 issues were closed first and anomaly detection moved to
+  finfocus#1590. Seven wall-clock or order-dependent tests flake on finfocus
+  main (BoltStore TTL tests, history, CostActual date tests, ConfigInit) and
+  still need their own issue. #1595 and #1596 merged on 2026-10-01; their
+  clean worktrees `finfocus-docs-link` and `.worktrees/issue-1506` can be
+  removed. `issue-1198` stays until #1597 merges, `issue-1528` (PR #1594) and
+  `issue-1523` (uncommitted changes) stay, and `finfocus-mcp` is a clone of the
+  deleted repo holding one untracked file, `goa-ai-issue.md`.

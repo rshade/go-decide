@@ -12,16 +12,17 @@ not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 
 ## Immediate Focus (v0.1.0)
 
-- [ ] #1 Typed Jev client core [L] (adapter over `kataras/jev`)
-- [ ] #2 Validated Probability and sealed Result types [M] (`decision/`;
-  thresholds are placeholders until #6)
-- [x] #3 Validate decision spec before any API call [M]
+- [x] #4 ask and score commands with versioned JSON schemas [M]
+  (implemented in `internal/cli`, `cmd/jev-decide` and `decision/`; closes
+  with its PR)
 
 ## Near-Term Vision (v0.2.0)
 
-- [ ] #4 ask and score commands with versioned JSON schemas [M]
 - [ ] #5 eval command for confidence separation and calibration [M]
 - [ ] #6 Tune confidence threshold on real decisions [M]
+  (thresholds are placeholders until then)
+- [ ] #12 Cover key redaction on retry and failure log lines [S]
+- [ ] #13 Document the logging policy in the `jevclient` package doc [S]
 
 ## Future Vision (Long-Term)
 
@@ -33,9 +34,12 @@ not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 
 ### 2026-Q3
 
-- [x] #10 `spike`: FinFocus scoring belongs in finfocus repos. Closed 2026-09-29.
-- [x] #11 `spike`: keep `kataras/jev`, do not write a client. Decided
-  2026-09-29; see `docs/jev-clients.md`.
+- [x] #1 `jevclient`: typed Jev client core. Closed 2026-09-30. [L]
+- [x] #2 `decision`: validated Probability, sealed Result. Closed 2026-09-30. [M]
+- [x] #3 `decision`: validate spec before any API call. Closed 2026-09-30. [M]
+- [x] #10 `spike`: FinFocus scoring belongs in finfocus repos. Closed 2026-09-30.
+- [x] #11 `spike`: keep `kataras/jev`, do not write a client. Closed 2026-09-30;
+  see `docs/jev-clients.md`.
 - Research probes: recommendation scoring, duplicate detection, decision
   spike, client survey (in `docs/`)
 

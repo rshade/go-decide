@@ -39,6 +39,21 @@ resp, err := client.SystemOne(ctx, jev.Request{
 
 Keep the token in the environment or an ignored `.env`. Never commit it.
 
+## Command line
+
+`jev-decide ask` and `jev-decide score` put a choice or an ordered rubric to Jev
+and print a versioned JSON outcome. The exit code says whether the answer can
+be acted on: 0 decided, 10 uncertain, 11 escalate, and 1 to 4 for failures.
+
+```sh
+jev-decide ask --state "All 412 tests passed." --instructions "Ship it?" \
+  --option ship="safe to release" --option hold="wait"
+```
+
+Input is a JSON decision spec (`--spec file` or `-`), flags, or both. See
+[docs/jev-decide-cli.md](docs/jev-decide-cli.md) for the spec format, output
+fields, exit codes and the versioning policy.
+
 ## Decisions
 
 `decision.Choose` asks Jev one choice question over a typed set of options and
@@ -86,3 +101,7 @@ next := decision.Match(result,
     func(e decision.Escalate[Action]) string { return "run the decide debate" },
 )
 ```
+
+Scores work the same way: `decision.Rate` takes ordered `Levels` and returns a
+sealed `ScoreResult` that `decision.MatchScore` consumes. Only `ScoreDecided` has
+a `Level()`.

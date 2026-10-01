@@ -26,7 +26,13 @@ func (q Question[T]) Validate() error {
 	if !q.Options.Valid() {
 		return fmt.Errorf("%w: build the options with NewOptions", ErrInvalidOptions)
 	}
-	payload, err := json.Marshal(q.State)
+	return validateState(q.State, len(q.Instructions)+q.Options.sizeBytes())
+}
+
+// validateState checks the State of a question and estimates its size:
+// extraBytes is the size of everything else sent with it.
+func validateState(state any, extraBytes int) error {
+	payload, err := json.Marshal(state)
 	if err != nil {
 		return newFieldError(ErrInvalidQuestion, "State", "cannot be encoded as JSON: %v", err)
 	}
@@ -34,18 +40,9 @@ func (q Question[T]) Validate() error {
 	case "null", `""`, "{}", "[]":
 		return newFieldError(ErrInvalidQuestion, "State", "is empty (%s)", payload)
 	}
-	if tokens := q.estimateTokens(len(payload)); tokens > maxStateTokens {
+	if tokens := (len(payload) + extraBytes) / bytesPerToken; tokens > maxStateTokens {
 		return newFieldError(ErrInvalidQuestion, "State",
 			"is too large: about %d tokens with the question, the limit is %d", tokens, maxStateTokens)
 	}
 	return nil
-}
-
-func (q Question[T]) estimateTokens(stateBytes int) int {
-	size := stateBytes + len(q.Instructions)
-	for _, name := range q.Options.Names() {
-		description, _ := q.Options.Description(name)
-		size += len(name) + len(description)
-	}
-	return size / bytesPerToken
 }

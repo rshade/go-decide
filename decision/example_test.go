@@ -76,3 +76,40 @@ func ExampleQuestion_Validate() {
 	// State - is empty (null)
 	// true
 }
+
+type Severity string
+
+const (
+	Minor Severity = "minor"
+	Major Severity = "major"
+)
+
+func ExampleMatchScore() {
+	client, err := jevclient.NewClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+	levels, err := decision.NewLevels(
+		decision.Level[Severity]{Name: Minor, Description: "A few users see a cosmetic fault."},
+		decision.Level[Severity]{Name: Major, Description: "Most users cannot complete a purchase."},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	result, err := decision.Rate(context.Background(), client, decision.RateQuestion[Severity]{
+		State:        "Checkout returns an error for about half of all requests.",
+		Instructions: "How severe is this incident?",
+		Levels:       levels,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	page := decision.MatchScore(result,
+		func(d decision.ScoreDecided[Severity]) bool { return d.Level() == Major },
+		func(u decision.ScoreUncertain[Severity]) bool { return true },
+		func(e decision.ScoreEscalate[Severity]) bool { return true },
+	)
+	fmt.Println(page)
+}

@@ -11,8 +11,10 @@ a result that forces the caller to handle low confidence.
 
 The repository is a research workspace (probes, spikes, a draft
 `finfocus-spec` proposal) that has started to grow product code: `jevclient/`
-(the configured Jev client and its error classification) and `decision/` (the
-validated `Probability`, `Thresholds` and sealed `Result` types).
+(the configured Jev client and its error classification), `decision/` (the
+validated `Probability`, `Thresholds`, `Levels` and `Spec` types, the sealed
+`Result` and `ScoreResult`, and `Choose` and `Rate`) and the CLI in
+`internal/cli` and `cmd/jev-decide`, which ships `ask` and `score`.
 
 ## Technical Boundaries ("Hard No's")
 
@@ -54,17 +56,18 @@ validated `Probability`, `Thresholds` and sealed `Result` types).
 
 ## Interaction Model
 
-- **Inbound:** CLI commands (`ask`, `score`, `eval`) and a Go library API
-  (`Choose[T ~string]` and typed option sets). Input is a decision spec
-  validated before use.
+- **Inbound:** CLI commands (`ask` and `score` today, `eval` planned in #5)
+  and a Go library API (`Choose[T ~string]`, `Rate` and typed option sets).
+  Input is a decision spec validated before use.
 - **Outbound:** HTTPS `POST /v1/systemone` with bearer auth, through
   `kataras/jev` (pinned) built only by `jevclient.NewClient`. `GET /v1/models`
   is the only other endpoint.
 - **Output:** versioned JSON with a sealed result type, chosen by the answer's
   confidence and two thresholds. Decided: at or above the confident level.
   Uncertain: from the floor up to the confident level, for a person. Escalate:
-  below the floor, for the `decide` debate. Both thresholds (0.9 and 0.5) are
-  placeholders until #6 tunes them.
+  below the floor, for the `decide` debate. The CLI exits 0, 10 and 11 for
+  these three; failures use the `ax-go` codes 1 to 4. Both thresholds (0.9
+  and 0.5) are placeholders until #6 tunes them.
 
 ## Verification
 

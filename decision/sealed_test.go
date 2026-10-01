@@ -108,3 +108,55 @@ func TestNoCodeOutsideThePackageCanCreateAResult(t *testing.T) {
 		t.Fatalf("build failed for another reason than the sealed method:\n%s", out)
 	}
 }
+
+const scoreMissingHandler = `package main
+
+import "github.com/rshade/jev-decide/decision"
+
+func main() {
+	var r decision.ScoreResult[string]
+	_ = decision.MatchScore(r,
+		func(decision.ScoreDecided[string]) int { return 1 },
+		func(decision.ScoreUncertain[string]) int { return 2 },
+	)
+}
+`
+
+const scoreForeignResult = `package main
+
+import "github.com/rshade/jev-decide/decision"
+
+type fake struct{}
+
+func (fake) Score() float64                                   { return 1 }
+func (fake) Nearest() string                                  { return "high" }
+func (fake) Confidence() decision.Probability                 { return decision.Probability{} }
+func (fake) Probabilities() map[string]decision.Probability   { return nil }
+func (fake) Level() string                                    { return "high" }
+
+func main() {
+	var _ decision.ScoreDecided[string] = fake{}
+}
+`
+
+func TestCallersMustHandleAllThreeScoreCases(t *testing.T) {
+	out, err := buildSnippet(t, scoreMissingHandler)
+
+	if err == nil {
+		t.Fatal("a program that omits a score handler compiled, want a compile error")
+	}
+	if !strings.Contains(out, "not enough arguments in call to decision.MatchScore") {
+		t.Fatalf("build failed for another reason than the missing handler:\n%s", out)
+	}
+}
+
+func TestNoCodeOutsideThePackageCanCreateAScoreResult(t *testing.T) {
+	out, err := buildSnippet(t, scoreForeignResult)
+
+	if err == nil {
+		t.Fatal("a type from outside the package satisfied ScoreDecided, want a compile error")
+	}
+	if !strings.Contains(out, "does not implement decision.ScoreDecided[string]") || !strings.Contains(out, "isScoreDecided") {
+		t.Fatalf("build failed for another reason than the sealed method:\n%s", out)
+	}
+}

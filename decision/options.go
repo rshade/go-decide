@@ -2,7 +2,6 @@ package decision
 
 import (
 	"errors"
-	"fmt"
 	"maps"
 	"slices"
 )
@@ -23,15 +22,15 @@ type Options[T ~string] struct {
 // rejected before any request is sent.
 func NewOptions[T ~string](descriptions map[T]string) (Options[T], error) {
 	if len(descriptions) < 2 {
-		return Options[T]{}, fmt.Errorf("%w: a choice needs at least two options, got %d",
-			ErrInvalidOptions, len(descriptions))
+		return Options[T]{}, newFieldError(ErrInvalidOptions, "Options",
+			"a choice needs at least two options, got %d", len(descriptions))
 	}
 	if len(descriptions) > MaxOptions {
 		return Options[T]{}, newFieldError(ErrInvalidOptions, "Options",
 			"a choice takes at most %d options, got %d", MaxOptions, len(descriptions))
 	}
 	if _, empty := descriptions[""]; empty {
-		return Options[T]{}, fmt.Errorf("%w: an option name is empty", ErrInvalidOptions)
+		return Options[T]{}, newFieldError(ErrInvalidOptions, "Options", "an option name is empty")
 	}
 	return Options[T]{descriptions: maps.Clone(descriptions)}, nil
 }
@@ -57,4 +56,12 @@ func (o Options[T]) Description(name T) (string, bool) {
 // Names returns the options in sorted order.
 func (o Options[T]) Names() []T {
 	return slices.Sorted(maps.Keys(o.descriptions))
+}
+
+func (o Options[T]) sizeBytes() int {
+	size := 0
+	for name, description := range o.descriptions {
+		size += len(name) + len(description)
+	}
+	return size
 }
