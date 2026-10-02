@@ -112,3 +112,7 @@ responses and is gitignored.
 - Commitlint in related repos is v21, which parses a body line starting with
   `word:` as a footer; never start a commit-body line that way.
 - Clone repos under review into the session scratchpad, not this directory.
+- `/pick-issue` (`.claude/commands/pick-issue.md`, with a Codex wrapper in
+  `.agents/skills/pick-issue/`) claims one `roadmap/current` issue through a
+  `processing:roadmap` label and routes it through OpenSpec or straight to
+  code. Its Phases 3 and 6 assume commits go to `main`; update them at v0.1.0.
