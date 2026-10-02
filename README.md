@@ -50,6 +50,16 @@ jev-decide ask --state "All 412 tests passed." --instructions "Ship it?" \
   --option ship="safe to release" --option hold="wait"
 ```
 
+`jev-decide eval` runs a labelled decision set through Jev and reports how well
+the confidence separates clear decisions from contested ones: accuracy,
+contested AUC, Brier score, and precision and recall per threshold. Use it to
+check the thresholds; it measures and never approves.
+
+```sh
+jev-decide eval --decisions testdata/decisions.json \
+  --truth testdata/decisions_truth.json --cache-dir .eval-cache
+```
+
 Input is a JSON decision spec (`--spec file` or `-`), flags, or both. See
 [docs/jev-decide-cli.md](docs/jev-decide-cli.md) for the spec format, output
 fields, exit codes and the versioning policy.

@@ -27,11 +27,15 @@ func (f *inputFlags) register(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.spec, "spec", "", specFlagUsage)
 	cmd.Flags().StringVar(&f.state, "state", "", "the content to decide on, as a string")
 	cmd.Flags().StringVar(&f.instructions, "instructions", "", "what to decide")
+	f.registerThresholds(cmd)
+}
+
+func (f *inputFlags) registerThresholds(cmd *cobra.Command) {
 	cmd.Flags().Float64Var(&f.floor, "floor", 0, "confidence below which the outcome is escalate (default 0.5)")
 	cmd.Flags().Float64Var(&f.confident, "confident", 0, "confidence at or above which the outcome is decided (default 0.9)")
 }
 
-// spec reads the document named by --spec and merges the flag values into it.
+// loadSpec reads the document named by --spec and merges the flag values into it.
 // entries are the repeated --option or --level values.
 func (f *inputFlags) loadSpec(cmd *cobra.Command, entries []decision.SpecEntry, forLevels bool) (decision.Spec, error) {
 	var doc decision.Spec
@@ -110,24 +114,21 @@ func parseEntries(ctx context.Context, flag string, values []string) ([]decision
 // validationError reports err as a failed validation: exit code 2, naming the
 // offending field when err carries one.
 func validationError(ctx context.Context, err error) error {
-	opts := []contract.ErrorOption{contract.WithErrorExitCode(contract.ExitValidation)}
 	var field *decision.FieldError
 	if errors.As(err, &field) {
-		opts = append(opts, contract.WithErrorContext(map[string]any{"field": field.Field}))
+		return newValidationError(ctx, err.Error(), field.Field)
 	}
-	return contract.NewError(ctx, "validation_error", err.Error(), opts...)
+	return newValidationError(ctx, err.Error(), "")
 }
 
-func thresholdsOutput(th decision.Thresholds) ThresholdsOutput {
-	return ThresholdsOutput{Floor: th.Floor().Float64(), Confident: th.Confident().Float64()}
-}
-
-func probabilitiesOutput(in map[string]decision.Probability) map[string]float64 {
-	out := make(map[string]float64, len(in))
-	for name, p := range in {
-		out[name] = p.Float64()
+// newValidationError builds the exit-code-2 envelope, with field in its
+// context when it is not empty.
+func newValidationError(ctx context.Context, msg, field string) error {
+	opts := []contract.ErrorOption{contract.WithErrorExitCode(contract.ExitValidation)}
+	if field != "" {
+		opts = append(opts, contract.WithErrorContext(map[string]any{"field": field}))
 	}
-	return out
+	return contract.NewError(ctx, "validation_error", msg, opts...)
 }
 
 // failure turns a failed call into the error a command returns: a rejected
@@ -143,13 +144,4 @@ func failure(ctx context.Context, err error) error {
 		}
 	}
 	return err
-}
-
-// dryRunOutput describes a validated question for --dry-run.
-func dryRunOutput(kind string, entries []decision.SpecEntry, th decision.Thresholds) DryRunOutput {
-	names := make([]string, len(entries))
-	for i, entry := range entries {
-		names[i] = entry.Name
-	}
-	return DryRunOutput{SchemaVersion: SchemaVersion, DryRun: true, Kind: kind, Names: names, Thresholds: thresholdsOutput(th)}
 }

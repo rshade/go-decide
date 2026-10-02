@@ -22,23 +22,30 @@ func mask(b string) string {
 	return maskedFields.ReplaceAllString(b, `"$1":"<masked>"`)
 }
 
+// goldenCases pins each output. since is the schema version an output first
+// appeared in; it has a golden file for every version from there on.
 var goldenCases = []struct {
 	name   string
+	since  int
 	args   []string
 	stdin  string
 	body   string
 	status int
 }{
-	{"ask.decided", askFlags, "", choiceAnswer("ship", 0.95), http.StatusOK},
-	{"ask.uncertain", askFlags, "", choiceAnswer("hold", 0.7), http.StatusOK},
-	{"ask.escalate", askFlags, "", choiceAnswer("hold", 0.3), http.StatusOK},
-	{"score.decided", scoreFlags, "", scoreAnswer(1.9, 0.95), http.StatusOK},
-	{"score.uncertain", scoreFlags, "", scoreAnswer(1.2, 0.7), http.StatusOK},
-	{"score.escalate", scoreFlags, "", scoreAnswer(0.4, 0.3), http.StatusOK},
-	{"ask.dryrun", append([]string{"--dry-run"}, askFlags...), "", "", http.StatusOK},
-	{"score.dryrun", append([]string{"--dry-run"}, scoreFlags...), "", "", http.StatusOK},
-	{"schema", []string{"__schema"}, "", "", http.StatusOK},
+	{"ask.decided", 1, askFlags, "", choiceAnswer("ship", 0.95), http.StatusOK},
+	{"ask.uncertain", 1, askFlags, "", choiceAnswer("hold", 0.7), http.StatusOK},
+	{"ask.escalate", 1, askFlags, "", choiceAnswer("hold", 0.3), http.StatusOK},
+	{"score.decided", 1, scoreFlags, "", scoreAnswer(1.9, 0.95), http.StatusOK},
+	{"score.uncertain", 1, scoreFlags, "", scoreAnswer(1.2, 0.7), http.StatusOK},
+	{"score.escalate", 1, scoreFlags, "", scoreAnswer(0.4, 0.3), http.StatusOK},
+	{"ask.dryrun", 1, append([]string{"--dry-run"}, askFlags...), "", "", http.StatusOK},
+	{"score.dryrun", 1, append([]string{"--dry-run"}, scoreFlags...), "", "", http.StatusOK},
+	{"schema", 1, []string{"__schema"}, "", "", http.StatusOK},
+	{"eval.report", 2, evalGoldenFlags, "", evalAnswer("a", 0.95), http.StatusOK},
+	{"eval.dryrun", 2, append([]string{"--dry-run"}, evalGoldenFlags...), "", "", http.StatusOK},
 }
+
+var evalGoldenFlags = []string{"eval", "--decisions", "testdata/eval/decisions.json", "--truth", "testdata/eval/truth.json"}
 
 func goldenPath(name string, version int) string {
 	return filepath.Join("testdata", "golden", fmt.Sprintf("%s.v%d.json", name, version))
@@ -46,6 +53,9 @@ func goldenPath(name string, version int) string {
 
 func TestOutputMatchesTheGoldenFileForTheCurrentVersion(t *testing.T) {
 	for _, tc := range goldenCases {
+		if tc.since > SchemaVersion {
+			t.Fatalf("%s starts at version %d, after SchemaVersion %d", tc.name, tc.since, SchemaVersion)
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			r := execute(t, tc.stdin, tc.args, tc.status, tc.body)
 			got := mask(r.stdout)
@@ -101,7 +111,7 @@ func TestGoldenFilesOfEarlierVersionsAreFrozen(t *testing.T) {
 		}
 	}
 	for _, tc := range goldenCases {
-		for v := 1; v <= SchemaVersion; v++ {
+		for v := tc.since; v <= SchemaVersion; v++ {
 			if _, err := os.Stat(goldenPath(tc.name, v)); err != nil {
 				t.Errorf("golden file for %s at version %d is missing: earlier versions must be kept", tc.name, v)
 			}

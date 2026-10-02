@@ -356,7 +356,7 @@ func TestDryRunNeedsNoKeyAndStillValidates(t *testing.T) {
 	env := func(stdout, stderr *bytes.Buffer) Env {
 		return Env{
 			Stdout: stdout, Stderr: stderr, Getenv: func(string) string { return "" }, Version: goldenVersion,
-			NewClient: func() (*jev.Client, error) {
+			NewClient: func(...jevclient.Option) (*jev.Client, error) {
 				t.Error("a dry run built a client")
 				return nil, errors.New("no client in a dry run")
 			},

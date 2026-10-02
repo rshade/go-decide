@@ -1,0 +1,6 @@
+[
+ {"id":"d1","title":"t","context":"c","constraints":["k"],
+  "options":[{"name":"a","description":"A","pros":["cheap"]},{"name":"b","description":"B"}]},
+ {"id":"d2","title":"t","context":"c","constraints":["k"],
+  "options":[{"name":"a","description":"A"},{"name":"b","description":"B"}]}
+]

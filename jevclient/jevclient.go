@@ -20,6 +20,19 @@
 //     a zero value.
 //
 // [Classify] turns any failure from a call into a structured error.
+//
+// # Response cache
+//
+// [WithResponseCache] is opt-in; without it nothing is written to disk. With
+// it, a successful response is stored in the named directory under the
+// SHA-256 of the request's method, scheme, host, path and body, and the same
+// request is answered from there without a network call. Headers are not part
+// of the key or the entry, so the token is never written. Only a 200 that
+// answers every question asked is stored; errors, retried statuses, redirects
+// and a response missing an answer are not.
+// The directory is created readable only by its owner. Entries are never
+// invalidated: a changed model behind the same request still gets the old
+// answer, so delete the directory to measure again.
 package jevclient
 
 import (
@@ -39,6 +52,7 @@ type config struct {
 	retry     jev.RetryPolicy
 	timeout   time.Duration
 	logOutput io.Writer
+	cacheDir  string
 }
 
 // WithTimeout sets the per-attempt timeout. Zero keeps the client default.
@@ -84,6 +98,9 @@ func NewClient(opts ...Option) (*jev.Client, error) {
 	jevOpts := []jev.Option{jev.WithBaseURL(baseURL), jev.WithRetry(cfg.retry), jev.WithLogger(logger)}
 	if cfg.timeout > 0 {
 		jevOpts = append(jevOpts, jev.WithTimeout(cfg.timeout))
+	}
+	if cfg.cacheDir != "" {
+		jevOpts = append(jevOpts, jev.WithHTTPClient(newCachingClient(cfg.cacheDir)))
 	}
 	return jev.New(jevOpts...)
 }

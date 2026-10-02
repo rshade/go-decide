@@ -18,7 +18,11 @@ not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 
 ## Near-Term Vision (v0.2.0)
 
-- [ ] #5 eval command for confidence separation and calibration [M]
+- [x] #5 eval command for confidence separation and calibration [M]
+  (implemented in `eval/`, `internal/cli/eval.go` and the `jevclient`
+  response cache; closes with its commit; promoted from Near-Term). The
+  bundled 40-decision set is a smoke test: contested AUC 0.985 on 2026-10-01,
+  with 2 contested decisions above 0.9. #6 needs real past decisions.
 - [ ] #6 Tune confidence threshold on real decisions [M]
   (thresholds are placeholders until then)
 - [ ] #12 Cover key redaction on retry and failure log lines [S]

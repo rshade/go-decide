@@ -13,8 +13,9 @@ The repository is a research workspace (probes, spikes, a draft
 `finfocus-spec` proposal) that has started to grow product code: `jevclient/`
 (the configured Jev client and its error classification), `decision/` (the
 validated `Probability`, `Thresholds`, `Levels` and `Spec` types, the sealed
-`Result` and `ScoreResult`, and `Choose` and `Rate`) and the CLI in
-`internal/cli` and `cmd/jev-decide`, which ships `ask` and `score`.
+`Result` and `ScoreResult`, and `Choose` and `Rate`), `eval/` (metrics over
+labelled results) and the CLI in `internal/cli` and `cmd/jev-decide`, which
+ships `ask`, `score` and `eval`.
 
 ## Technical Boundaries ("Hard No's")
 
@@ -56,7 +57,7 @@ validated `Probability`, `Thresholds`, `Levels` and `Spec` types, the sealed
 
 ## Interaction Model
 
-- **Inbound:** CLI commands (`ask` and `score` today, `eval` planned in #5)
+- **Inbound:** CLI commands (`ask`, `score` and `eval`)
   and a Go library API (`Choose[T ~string]`, `Rate` and typed option sets).
   Input is a decision spec validated before use.
 - **Outbound:** HTTPS `POST /v1/systemone` with bearer auth, through

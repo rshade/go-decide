@@ -1,0 +1,1 @@
+{"data":{"schema_version":2,"outcome":"decided","choice":"ship","confidence":0.95,"probabilities":{"hold":0.4,"ship":0.6},"thresholds":{"floor":0.5,"confident":0.9}},"meta":{"trace_id":"<masked>","span_id":"<masked>","idempotency_key":"<masked>"}}

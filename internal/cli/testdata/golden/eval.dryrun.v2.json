@@ -1,0 +1,1 @@
+{"data":{"schema_version":2,"dry_run":true,"decisions":2,"dominant":1,"contested":1,"thresholds":{"floor":0.5,"confident":0.9}},"meta":{"trace_id":"<masked>","span_id":"<masked>","idempotency_key":"<masked>","dry_run":true}}

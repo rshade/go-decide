@@ -1,6 +1,13 @@
 package cli
 
-import ax "github.com/rshade/ax-go"
+import (
+	"fmt"
+
+	ax "github.com/rshade/ax-go"
+)
+
+// outcomeExitCodes is the exit-code line of the ask and score help text.
+var outcomeExitCodes = fmt.Sprintf("Exit codes: 0 decided, %d uncertain, %d escalate", ExitUncertain, ExitEscalate)
 
 type outcomeKind int
 

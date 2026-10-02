@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	ax "github.com/rshade/ax-go"
 	"github.com/rshade/ax-go/contract"
 	"github.com/spf13/cobra"
@@ -18,7 +20,7 @@ func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
 		Short: "Ask Jev to choose between options",
 		Long: "ask puts a choice question to Jev and prints the outcome as a JSON envelope.\n" +
 			"Only a decided outcome has a choice; the other two name a leading option only.\n" +
-			"Output schema_version: 1. Exit codes: 0 decided, 10 uncertain, 11 escalate.",
+			fmt.Sprintf("Output schema_version: %d. %s.", SchemaVersion, outcomeExitCodes),
 		Example: `  jev-decide ask --spec decision.json
   jev-decide ask --state "all tests passed" --instructions "Ship it?" --option ship="safe to release" --option hold=wait`,
 		Args: cobra.NoArgs,

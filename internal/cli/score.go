@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	ax "github.com/rshade/ax-go"
 	"github.com/rshade/ax-go/contract"
 	"github.com/spf13/cobra"
@@ -18,7 +20,7 @@ func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
 		Short: "Ask Jev to rate content against an ordered rubric",
 		Long: "score rates the state against ordered levels and prints the outcome as a JSON envelope.\n" +
 			"Only a decided outcome has a level; the other two name the nearest level only.\n" +
-			"Output schema_version: 1. Exit codes: 0 decided, 10 uncertain, 11 escalate.",
+			fmt.Sprintf("Output schema_version: %d. %s.", SchemaVersion, outcomeExitCodes),
 		Example: `  jev-decide score --spec incident.json
   jev-decide score --state "checkout fails for half of users" --level minor="cosmetic" --level major="cannot buy"`,
 		Args: cobra.NoArgs,

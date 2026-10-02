@@ -1,7 +1,9 @@
 # jev-decide command line
 
 `jev-decide` puts a choice (`ask`) or an ordered rubric (`score`) to Jev and
-prints a typed outcome. Only a decided outcome is one to act on.
+prints a typed outcome. Only a decided outcome is one to act on. `eval`
+measures how well Jev's confidence separates clear decisions from contested
+ones on a labelled set.
 
 ## Commands
 
@@ -12,10 +14,12 @@ jev-decide ask   --state "all tests passed" --instructions "Ship it?" \
 jev-decide score --spec incident.json
 jev-decide score --state "checkout fails" --level minor="cosmetic" \
                  --level major="cannot buy"
+jev-decide eval  --decisions testdata/decisions.json \
+                 --truth testdata/decisions_truth.json
 jev-decide __schema
 ```
 
-Both commands take the same thresholds: `--floor` (default 0.5) and
+All three commands take the same thresholds: `--floor` (default 0.5) and
 `--confident` (default 0.9). The defaults are placeholders until they are tuned
 on real decisions. The token comes from `TYPESAFE_API_KEY`, never a flag.
 
@@ -78,11 +82,59 @@ API key is needed and nothing is billed. It prints an envelope whose data has
 (the options or levels in the order given) and `thresholds`, and exits 0. An
 invalid spec fails with exit code 2 just as it does without the flag.
 
+## eval
+
+`eval` reads a decision set (`--decisions`) and a truth file (`--truth`) in
+the format of `testdata/decisions.json` and `testdata/decisions_truth.json`.
+It asks Jev one choice question per decision, in file order. The question's
+state is the decision's `title`, `context`, `constraints` and `options`.
+Option fields beyond `name` and `description` (such as `pros` or
+`cost_usd_per_month`) are sent as they are. `--instructions` replaces the
+default "Given the stated constraints, which option should the team choose?".
+
+A decision entry may have only `id`, `title`, `context`, `constraints` and
+`options`, and a truth entry only `id`, `class`, `correct_option` and `why`.
+Both files are validated before any request. The ids must match one to one.
+`class` is `dominant`, which needs a `correct_option` that is one of the
+decision's options, or `contested`, which has `correct_option: null`. Each
+decision must also pass the checks `ask` applies to a spec. A failure exits 2
+and names the field, as in `truth[dec-001].correct_option`.
+
+A result is safe to fast-path only when the decision is dominant and Jev
+picked its correct option. The report's data has:
+
+| Field | Meaning |
+| --- | --- |
+| `schema_version` | Version of this shape. |
+| `metrics.accuracy` | Correct picks over dominant decisions. `null` with none. |
+| `metrics.contested_auc` | How well 1 minus the pick confidence detects contested decisions. `null` unless both classes are present. |
+| `metrics.brier` | Mean squared gap between pick confidence and safe (1) or not (0). |
+| `outcomes` | `decided`, `uncertain` and `escalate` counts under the thresholds, and `decided_unsafe`: decided but not safe. |
+| `thresholds` | The `floor` and `confident` levels used. |
+| `by_threshold` | One row per threshold (0.05 to 0.95 by 0.05, plus the run's two): `selected`, `safe`, `unsafe`, `precision` and `recall`; `null` when undefined. |
+| `decisions` | One row per decision: `id`, `class`, `pick`, `confidence`, `correct_option`, `safe` and `outcome`. |
+
+A `pick` is what Jev picked, not a decision; its `outcome` says whether it
+cleared the confident level. Everything derived from confidence varies between
+identical calls. `eval` measures and never approves: it exits 0 whenever it
+prints a report, whatever the numbers. A failed call fails the whole run with
+no partial report, and the error names the decision.
+
+`--cache-dir dir` stores each successful response in `dir`, so a rerun of the
+same set with the same instructions sends nothing, and a rerun after a failure
+only pays for what was not answered. Entries never expire: delete the
+directory to measure again after a model change. Without the flag nothing is
+written. `--dry-run` validates both files and prints `decisions`, `dominant`,
+`contested` and `thresholds` without a key or a request.
+
+The bundled set is 40 synthetic, constraint-shaped decisions. Treat it as a
+smoke test. Tuning the thresholds needs past decisions with known outcomes.
+
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
-| 0 | Decided. |
+| 0 | Decided, or an `eval` report was printed. |
 | 1 | Internal failure, or a response that broke the contract. |
 | 2 | Invalid input, including any spec that fails validation. |
 | 3 | Network failure or timeout. |
@@ -95,9 +147,11 @@ error codes behind them. Codes 5 to 9 are left free.
 
 ## Output version
 
-`schema_version` is 1. The output of every command, and `__schema`, is pinned
+`schema_version` is 2. Version 2 added `eval`; the `ask` and `score` shapes are
+unchanged from version 1. The output of every command, and `__schema`, is pinned
 by golden files in `internal/cli/testdata/golden/`, one per version. A change to
 a shape fails the tests until `SchemaVersion` is increased and golden files for
-the new version are added. Earlier golden files stay, and a test fails if one is
-edited or removed. Regenerate the current version's files with
-`go test ./internal/cli -run Golden -update`.
+the new version are added. An output that first appears in a later version has
+golden files from that version on. Earlier golden files stay, and a test fails
+if one is edited or removed. Regenerate the current version's files with `go
+test ./internal/cli -run Golden -update`.

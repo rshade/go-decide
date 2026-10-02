@@ -23,7 +23,7 @@ Go 1.27.1 is required (`ax-go` v0.7.0 needs it). There is no Makefile.
 ```sh
 go build ./...
 # safe, no spend:
-go test ./decision/... ./jevclient/... ./internal/... ./cmd/...
+go test ./decision/... ./jevclient/... ./eval/... ./internal/... ./cmd/...
 go test ./decision -run TestChooseTurnsConfidence -v   # single test
 go test ./internal/cli -run Golden -update   # rewrite golden files
 golangci-lint run ./...
@@ -41,14 +41,17 @@ environment (they do not read `.env`).
 
 ## Architecture
 
-Three layers, with a dependency rule enforced by a test:
+Three layers plus a metrics package, with a dependency rule enforced by a
+test:
 
 - `jevclient/` wraps the pinned `kataras/jev` client. `NewClient` is the only
   supported constructor: it reads the key from the environment, enforces an
   https-or-loopback `TYPESAFE_BASE_URL`, never follows redirects, retries only
-  429/529, and redacts the key in logs. `Classify` maps failures to `ax-go`
-  `contract.Error` codes, which must all be listed in `docs/jev-errors.md`
-  (`docs_test.go` fails otherwise).
+  429/529, and redacts the key in logs. `WithResponseCache(dir)` is an opt-in
+  on-disk cache (a `RoundTripper` keyed on method, host, path and body; only
+  200s that answer every question asked; never invalidated). `Classify` maps
+  failures to `ax-go` `contract.Error` codes, which must all be listed in
+  `docs/jev-errors.md` (`docs_test.go` fails otherwise).
 - `decision/` is the typed domain. `Choose[T ~string]` (over `Options[T]`) and
   `Rate` (over ordered `Levels`, 2 to 10) return sealed results:
   `Result[T]` (`Decided`, `Uncertain`, `Escalate`, consumed with `Match`) and
@@ -60,23 +63,30 @@ Three layers, with a dependency rule enforced by a test:
   `*FieldError` (empty or typed-nil `State`, size estimate over 32k tokens at
   bytes/4, more than 255 options). `Spec` is the JSON decision-spec document:
   `ParseSpec`, `MergeFlags`, then `Question` or `RateQuestion`.
-- `internal/cli/` and `cmd/jev-decide/` implement `ask` and `score` on
-  `ax.Execute`. `cli.Run` takes an injectable `Env` (stdio, `Getenv`) so tests
-  never touch the process. Output is a `contract` envelope with
-  `data.schema_version`. Exit codes: 0 decided, 10 uncertain, 11 escalate,
-  `ax` codes 1 to 4 for failures; each must appear in `docs/jev-decide-cli.md`.
-  `--dry-run` validates and stops without a key or a request.
+- `eval/` scores labelled choice results (`NewResult`, `Compute`): accuracy,
+  contested AUC, Brier, per-threshold precision/recall. Undefined metrics are
+  an absent `Metric`, never 0. `OutcomeOf` mirrors `decision`'s unexported
+  `classify` rule.
+- `internal/cli/` and `cmd/jev-decide/` implement `ask`, `score` and `eval` on
+  `ax.Execute`. `cli.Run` takes an injectable `Env` (stdio, `Getenv`,
+  `NewClient(...jevclient.Option)`) so tests never touch the process. Output
+  is a `contract` envelope with `data.schema_version`. Exit codes: 0 decided,
+  10 uncertain, 11 escalate, `ax` codes 1 to 4 for failures (`eval` exits 0
+  with a report); each must appear in `docs/jev-decide-cli.md`. `--dry-run`
+  validates and stops without a key or a request.
 
-`decision` and `jevclient` may import only `ax-go`'s `contract` package;
-`internal/cli/deps_test.go` fails if they pull in `ax`'s OpenTelemetry/gRPC
-dependencies.
+`decision` and `jevclient` may import only `ax-go`'s `contract` package, and
+`eval` only those plus `decision`; `internal/cli/deps_test.go` fails if any of
+them pull in `ax`'s OpenTelemetry/gRPC dependencies.
 
 ### Output schema versioning
 
 Golden files in `internal/cli/testdata/golden/` pin every outcome and the
-`__schema` output per version (`*.v1.json`). Any change to output shape needs a
+`__schema` output per version (`*.v<N>.json`; the current version is 2). Any
+change to output shape, including a new command in `__schema`, needs a
 `SchemaVersion` bump plus a new set of golden files, not an edit to the
-existing ones.
+existing ones. Each golden case has a `since` version; a new command starts at
+the current one.
 
 ## Tests
 

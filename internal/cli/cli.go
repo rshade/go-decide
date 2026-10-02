@@ -30,7 +30,7 @@ type Env struct {
 	Stderr    io.Writer
 	Getenv    func(string) string
 	Version   string
-	NewClient func() (*jev.Client, error)
+	NewClient func(...jevclient.Option) (*jev.Client, error)
 }
 
 func (e Env) withDefaults() Env {
@@ -47,7 +47,7 @@ func (e Env) withDefaults() Env {
 		e.Getenv = os.Getenv
 	}
 	if e.NewClient == nil {
-		e.NewClient = func() (*jev.Client, error) { return jevclient.NewClient() }
+		e.NewClient = jevclient.NewClient
 	}
 	e.Version = ax.ResolveVersion(e.Version)
 	return e
@@ -81,8 +81,9 @@ func newRoot(env Env, outcome *outcomeKind) *cobra.Command {
 		Short: "Ask Jev a choice or score question and get a typed outcome",
 		Long: "jev-decide puts a choice (ask) or an ordered rubric (score) to TypeSafe AI's Jev model.\n" +
 			"The outcome is decided, uncertain or escalate, and only a decided outcome is one to act on.\n" +
-			"Exit codes: 0 decided, 10 uncertain, 11 escalate, 1 to 4 failures.",
+			"eval measures how well the confidence separates clear decisions from contested ones.\n" +
+			outcomeExitCodes + ", 1 to 4 failures; eval exits 0 with a report.",
 	}
-	root.AddCommand(newAskCommand(env, outcome), newScoreCommand(env, outcome))
+	root.AddCommand(newAskCommand(env, outcome), newScoreCommand(env, outcome), newEvalCommand(env))
 	return root
 }

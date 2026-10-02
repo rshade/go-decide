@@ -1,0 +1,1 @@
+{"data":{"schema_version":2,"outcome":"uncertain","nearest":"b","score":1.2,"confidence":0.7,"probabilities":{"a":0.05,"b":0.15,"c":0.8},"thresholds":{"floor":0.5,"confident":0.9}},"meta":{"trace_id":"<masked>","span_id":"<masked>","idempotency_key":"<masked>"}}
