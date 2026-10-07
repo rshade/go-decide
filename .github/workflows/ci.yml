@@ -16,7 +16,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      # mise.toml pins the same Go as go.mod, plus golangci-lint and OpenSpec.
+      # mise.toml pins the same Go as go.mod, plus golangci-lint, Node,
+      # markdownlint-cli2, commitlint and OpenSpec.
       # setup-go then selects the toolchain from go.mod, so a go.mod bump is
       # what CI builds with even if the mise pin lags.
       - name: Install tools from mise.toml
@@ -45,7 +46,7 @@ jobs:
         run: golangci-lint run ./...
 
       - name: markdownlint
-        run: npx --yes markdownlint-cli2 "**/*.md"
+        run: mise exec -- markdownlint-cli2 "**/*.md"
 
       - name: OpenSpec
         run: mise exec -- openspec validate --all --strict
@@ -56,7 +57,7 @@ jobs:
         run: |
           set -eu
           if [ -z "${COMMITLINT_FROM}" ] || [ "${COMMITLINT_FROM}" = "0000000000000000000000000000000000000000" ]; then
-            npx --yes @commitlint/cli --from HEAD~1 --to HEAD --verbose
+            mise exec -- commitlint --from HEAD~1 --to HEAD --verbose
           else
-            npx --yes @commitlint/cli --from "${COMMITLINT_FROM}" --to "${GITHUB_SHA}" --verbose
+            mise exec -- commitlint --from "${COMMITLINT_FROM}" --to "${GITHUB_SHA}" --verbose
           fi
