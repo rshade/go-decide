@@ -35,3 +35,6 @@ go.work.sum
 .env
 .probe-cache/
 PR_MESSAGE.md
+
+# GoReleaser output
+dist/

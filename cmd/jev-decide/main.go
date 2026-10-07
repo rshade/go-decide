@@ -9,6 +9,10 @@ import (
 	"github.com/rshade/jev-decide/internal/cli"
 )
 
+// version is set at release time by GoReleaser through -ldflags. Left empty,
+// the version comes from the module build info.
+var version string
+
 func main() {
-	os.Exit(cli.Run(context.Background(), os.Args[1:], cli.Env{}))
+	os.Exit(cli.Run(context.Background(), os.Args[1:], cli.Env{Version: version}))
 }
