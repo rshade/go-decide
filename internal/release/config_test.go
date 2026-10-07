@@ -5,8 +5,11 @@ package release
 import (
 	"encoding/json"
 	"os"
+	"regexp"
 	"testing"
 )
+
+var semver = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 
 type releasePleasePackage struct {
 	ReleaseType               string `json:"release-type"`
@@ -51,10 +54,13 @@ func TestReleasePleaseConfig(t *testing.T) {
 	}
 }
 
-func TestReleasePleaseManifestStaysAtZero(t *testing.T) {
+func TestReleasePleaseManifestFormat(t *testing.T) {
 	var manifest map[string]string
 	readJSON(t, "../../.release-please-manifest.json", &manifest)
-	if manifest["."] != "0.0.0" {
-		t.Errorf(`manifest "." = %q, want 0.0.0 until the first release PR merges`, manifest["."])
+	if len(manifest) != 1 {
+		t.Errorf("manifest has %d entries, want only the %q package", len(manifest), ".")
+	}
+	if !semver.MatchString(manifest["."]) {
+		t.Errorf(`manifest "." = %q, want X.Y.Z with no v prefix; the release PR rewrites it on every release`, manifest["."])
 	}
 }
