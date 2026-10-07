@@ -12,17 +12,21 @@ that tell an outcome apart from a failure.
 
 The system SHALL print a command's result as one JSON document on standard
 output using the shared success envelope, and SHALL print nothing else there.
-The data SHALL carry a schema version for its shape. Errors SHALL be printed as
-the shared error envelope on standard error and SHALL leave standard output
-empty of results. An uncertain or escalate outcome is not an error and SHALL
-NOT produce an error envelope. Diagnostics and logs SHALL go to standard error.
-The JSON envelope SHALL be printed in both the machine and human output modes.
+The data SHALL carry a schema version for its shape.
 
 #### Scenario: Result on standard output only
 
 - **WHEN** `ask` produces an outcome
 - **THEN** standard output holds exactly one JSON envelope with the schema
   version, and standard error holds no result
+
+### Requirement: Errors and diagnostics stay off the result stream
+
+Errors SHALL be printed as the shared error envelope on standard error and
+SHALL leave standard output empty of results. An uncertain or escalate outcome
+is not an error and SHALL NOT produce an error envelope. Diagnostics and logs
+SHALL go to standard error. The JSON envelope SHALL be printed in both the
+machine and human output modes.
 
 #### Scenario: Failure
 
@@ -56,12 +60,8 @@ output fields that vary between identical calls as non-deterministic.
 
 The system SHALL honor the shared `--dry-run` flag on `ask`, `score` and `eval`
 by validating the input and the thresholds and then stopping, so that no
-request is sent, no API key is needed and nothing is billed. For `ask` and
-`score` it SHALL print the shared envelope with a dry-run result that carries
-the schema version, the kind of question, the option or level names in order
-and the thresholds. For `eval` the dry-run result SHALL describe the decision
-set as the `eval` command specifies. A dry run SHALL exit 0. Invalid input in
-a dry run SHALL fail as it does without the flag.
+request is sent, no API key is needed and nothing is billed. A dry run SHALL
+exit 0. Invalid input in a dry run SHALL fail as it does without the flag.
 
 #### Scenario: Dry run sends nothing
 
@@ -84,6 +84,19 @@ a dry run SHALL fail as it does without the flag.
 - **WHEN** `eval --dry-run` is given a valid decision set and truth file with
   no API key set
 - **THEN** the server has received zero requests and the exit code is 0
+
+### Requirement: A dry run prints what it validated
+
+For `ask` and `score` a dry run SHALL print the shared envelope with a dry-run
+result that carries the schema version, the kind of question, the option or
+level names in order and the thresholds. For `eval` the dry-run result SHALL
+describe the decision set as the `eval` command specifies.
+
+#### Scenario: Dry run result content
+
+- **WHEN** `ask --dry-run` is given a valid spec
+- **THEN** the envelope carries the schema version, the kind of question, the option
+  names in order and the thresholds
 
 ### Requirement: A schema change requires a version bump
 

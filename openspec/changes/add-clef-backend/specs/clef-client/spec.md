@@ -103,10 +103,7 @@ The package SHALL export the pieces that adapt Cloudflare to the System One
 wire format, so a caller that already has its own System One client can reach
 clef without this package's client: a base URL for an account, and an HTTP
 transport that rewrites the System One path to the clef run path and unwraps
-the result envelope. The transport SHALL refuse any other path or method, and
-the base URL SHALL be refused for an account ID that is not 32 hexadecimal
-characters. Importing the package from another module SHALL need no more than
-the module's declared dependencies.
+the result envelope.
 
 #### Scenario: A plain HTTP client reaches clef
 
@@ -115,17 +112,30 @@ the module's declared dependencies.
 - **THEN** the server receives the clef run path with the same body and
   Authorization header, and the client reads a flat System One response
 
+#### Scenario: Recorded response
+
+- **WHEN** a real recorded clef response with a noul, a choice and a score
+  answer is served
+- **THEN** all three answers read as typed System One answers
+
+### Requirement: The exported adaptation is restricted and self-contained
+
+The transport SHALL refuse any other path or method, and the base URL SHALL be
+refused for an account ID that is not 32 hexadecimal characters. Importing the
+package from another module SHALL need no more than the module's declared
+dependencies.
+
 #### Scenario: Other paths are refused
 
 - **WHEN** a request to `/v1/models`, or a GET to `/v1/systemone`, goes
   through the transport
 - **THEN** it fails and nothing is sent
 
-#### Scenario: Recorded response
+#### Scenario: Bad account ID is refused
 
-- **WHEN** a real recorded clef response with a noul, a choice and a score
-  answer is served
-- **THEN** all three answers read as typed System One answers
+- **WHEN** the exported base URL is requested for an account ID that is not 32
+  hexadecimal characters
+- **THEN** it is refused
 
 ### Requirement: Retry policy is explicit and bounded
 

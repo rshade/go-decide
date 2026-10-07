@@ -47,9 +47,7 @@ The system SHALL turn a usable score answer into exactly one result by
 comparing the answer's confidence with the same thresholds used for choices.
 Confidence at or above the confident level SHALL give a decided result, at or
 above the floor and below the confident level an uncertain result, and below
-the floor an escalate result. Every result SHALL carry the fractional score,
-the nearest level, the confidence and the probability of every level. Only a
-decided result SHALL expose its level as one a caller may act on.
+the floor an escalate result.
 
 #### Scenario: Confident rating
 
@@ -69,11 +67,23 @@ decided result SHALL expose its level as one a caller may act on.
 - **WHEN** the confidence is 0.3 and the floor is 0.5
 - **THEN** the result is escalate
 
+### Requirement: A score result carries the whole answer
+
+Every result SHALL carry the fractional score, the nearest level, the
+confidence and the probability of every level. Only a decided result SHALL
+expose its level as one a caller may act on.
+
 #### Scenario: Score between levels
 
 - **WHEN** the score is 0.5 over levels indexed from 0
 - **THEN** the nearest level is the lower one, and the fractional score is
   still reported unchanged
+
+#### Scenario: Only decided exposes a level
+
+- **WHEN** the result is uncertain or escalate
+- **THEN** it carries the score and probabilities but does not expose its
+  level as one to act on
 
 ### Requirement: An unusable score answer is an error
 
