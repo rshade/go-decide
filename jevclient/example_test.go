@@ -7,7 +7,7 @@ import (
 
 	"github.com/kataras/jev"
 
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 func ExampleNewClient() {

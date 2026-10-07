@@ -17,7 +17,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/rshade/jev-decide/decision"
+	"github.com/rshade/go-decide/decision"
 )
 
 // ErrInvalidResult is wrapped by the error [NewResult] returns.

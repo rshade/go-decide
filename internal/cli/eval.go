@@ -10,9 +10,9 @@ import (
 	"github.com/rshade/ax-go/contract"
 	"github.com/spf13/cobra"
 
-	"github.com/rshade/jev-decide/decision"
-	"github.com/rshade/jev-decide/eval"
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/decision"
+	"github.com/rshade/go-decide/eval"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 func newEvalCommand(env Env) *cobra.Command {
@@ -26,8 +26,8 @@ func newEvalCommand(env Env) *cobra.Command {
 			"accuracy, contested AUC, Brier score and precision and recall per threshold.\n" +
 			"It measures; it never approves. Both files are validated before any request.\n" +
 			fmt.Sprintf("Output schema_version: %d. Exit code 0 when the report is printed.", SchemaVersion),
-		Example: `  jev-decide eval --decisions testdata/decisions.json --truth testdata/decisions_truth.json
-  jev-decide eval --decisions past.json --truth past_truth.json --cache-dir .eval-cache`,
+		Example: `  go-decide eval --decisions testdata/decisions.json --truth testdata/decisions_truth.json
+  go-decide eval --decisions past.json --truth past_truth.json --cache-dir .eval-cache`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()

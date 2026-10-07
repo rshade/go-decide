@@ -197,7 +197,10 @@ fails.
 
 ### JD-1.3: Sync the roadmap with what shipped
 
-**Status:** TODO
+**Status:** DONE 2026-10-06, `/roadmap sync`; `roadmap-check.sh` went from 15
+errors to exit 0 with no findings. #12 and #13 moved to Immediate Focus with
+`roadmap/current`, #4 and #5 moved to Completed (2026-Q4), and the closed
+issues lost their phase labels.
 
 **ID:** JD-1.3
 **Description:** ROADMAP.md lists #5 as done under Near-Term (v0.2.0) while

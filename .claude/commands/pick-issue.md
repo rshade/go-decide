@@ -9,9 +9,10 @@ commit on `main`, and release the claim. Then **stop**.
 
 Adapted from the ax-go command of the same name. The claim protocol is
 borrowed, with the hardening tailscale-utils added after it raced in practice.
-Almost everything else differs: jev-decide is a **single small Go module that
-uses OpenSpec, not Spec Kit**, has no Makefile or CI, and **commits straight to
-`main` until v0.1.0 ships** instead of landing pull requests.
+Almost everything else differs: go-decide is a **single small Go module that
+uses OpenSpec, not Spec Kit**, has no Makefile, and **commits straight to
+`main` until v0.1.0 ships** instead of landing pull requests. CI runs on
+push and pull request.
 
 **Scope: one issue. Do not pick up a second one.** Re-invoke to continue.
 
@@ -264,17 +265,18 @@ becomes a PR. Update this file when that happens.
 go build ./...
 gofmt -l .                       # must print nothing
 go vet ./...
-go test ./decision/... ./jevclient/... ./internal/... ./cmd/...
+go test ./...                    # offline; probes need -tags probe
 golangci-lint run ./...
 npx markdownlint-cli2 "**/*.md"
 mise exec -- openspec validate --all --strict
 ```
 
 > [!CAUTION]
-> **Never run `go test ./...` or a bare `go test` in the repo root.** The
-> root `*_test.go` files are live probes that read `./.env` themselves and
-> spend real money. Run one only when the issue needs it, deliberately, by
-> name, with the user's approval.
+> **Probes need `-tags probe` and spend money.** The root `probe_*_test.go`
+> and `jev_*_test.go` files are live probes. `go test ./...` does not build
+> them. Run one only when the issue needs it, deliberately, by name, with
+> the user's approval, for example
+> `go test -tags probe -run TestJevRecommendations -count=1`.
 
 - **Golden files are pinned, not regenerated to pass.**
   `go test ./internal/cli -run Golden -update` is for an *intentional* output
@@ -368,8 +370,8 @@ claim is released or held. Then stop. Do not pick another issue.
 
 Do not re-investigate these; they are settled.
 
-- **The module path is `github.com/rshade/jev-decide`, the directory is
-  `gojev`.** Do not rename either. Issues live in `rshade/jev-decide`.
+- **The module path is `github.com/rshade/go-decide`, the directory is
+  `gojev`.** Do not rename the directory. Issues live in `rshade/go-decide`.
 - **Jev ranks well but is not calibrated** (AUC about 0.91, Brier 0.236).
   Thresholds in `DefaultThresholds()` are placeholders until #6. Never let a
   change treat a Jev score as approval.

@@ -1,4 +1,4 @@
-# jev-decide Strategic Roadmap
+# go-decide Strategic Roadmap
 
 ## Vision
 
@@ -10,23 +10,32 @@ Research so far (2026-09-28 and 2026-09-29) supports gating and labelling,
 not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 `docs/probe-round2-2026-09-28.md` and `docs/spike-decisions-2026-09-29.md`.
 
+The GitHub repo, module path and binary are `go-decide`
+(`github.com/rshade/go-decide`). The local directory stays `gojev`.
+The task breakdown for v0.1.0 is in [TASKS.md](TASKS.md).
+
 ## Immediate Focus (v0.1.0)
 
-- [x] #4 ask and score commands with versioned JSON schemas [M]
-  (implemented in `internal/cli`, `cmd/jev-decide` and `decision/`; closes
-  with its PR)
+Ship the current feature set safely under its final name. v0.1.0 waits for
+the Clef spike verdict (#18) and keeps the placeholder thresholds.
+
+- [ ] #16 Put the root probes behind a `probe` build tag [S]
+- [ ] #17 Make markdownlint clean across the repo [S]
+- [ ] #12 Cover key redaction on retry and failure log lines [S]
+- [ ] #13 Document the logging policy in the `jevclient` package doc [S]
+- [ ] #18 Spike: is Clef a drop-in System One provider? (timebox 1d)
+  *Spike promoted 2026-10-06 - timebox timebox/1d; decide by 2026-10-07*
+- [ ] #19 Rename the module, binary and repo to `go-decide` [M]
+- [ ] #20 CI and release pipeline for v0.1.0 [L]
+  (release-please and GoReleaser landed in `8223de5`; CI, docs and the
+  release remain)
 
 ## Near-Term Vision (v0.2.0)
 
-- [x] #5 eval command for confidence separation and calibration [M]
-  (implemented in `eval/`, `internal/cli/eval.go` and the `jevclient`
-  response cache; closes with its commit; promoted from Near-Term). The
-  bundled 40-decision set is a smoke test: contested AUC 0.985 on 2026-10-01,
-  with 2 contested decisions above 0.9. #6 needs real past decisions.
 - [ ] #6 Tune confidence threshold on real decisions [M]
-  (thresholds are placeholders until then)
-- [ ] #12 Cover key redaction on retry and failure log lines [S]
-- [ ] #13 Document the logging policy in the `jevclient` package doc [S]
+  (thresholds are placeholders until then; needs #9's real decisions)
+- [ ] #21 Serve the commands as MCP tools with `ax-go`'s `mcp-server` [M]
+- [ ] #22 Ship the `decide` skill in this repository [S]
 
 ## Future Vision (Long-Term)
 
@@ -36,14 +45,18 @@ not ranking or auto-approval: see `docs/probe-2026-09-28.md`,
 
 ## Completed Milestones
 
+### 2026-Q4
+
+- [x] #5 `eval`: eval command, metrics, response cache. Closed 2026-10-02. [M]
+- [x] #4 `cli`: ask and score commands, versioned JSON. Closed 2026-10-01. [M]
+
 ### 2026-Q3
 
 - [x] #1 `jevclient`: typed Jev client core. Closed 2026-09-30. [L]
 - [x] #2 `decision`: validated Probability, sealed Result. Closed 2026-09-30. [M]
 - [x] #3 `decision`: validate spec before any API call. Closed 2026-09-30. [M]
 - [x] #10 `spike`: FinFocus scoring belongs in finfocus repos. Closed 2026-09-30.
-- [x] #11 `spike`: keep `kataras/jev`, do not write a client. Closed 2026-09-30;
-  see `docs/jev-clients.md`.
+- [x] #11 `spike`: keep `kataras/jev`, do not write a client. Closed 2026-09-30.
 - Research probes: recommendation scoring, duplicate detection, decision
   spike, client survey (in `docs/`)
 

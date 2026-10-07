@@ -74,3 +74,43 @@ func TestInvalidLogLevelIsAConfigurationError(t *testing.T) {
 		t.Fatalf("NewClient() error = %v, want jev.ErrConfig", err)
 	}
 }
+
+func TestRetryLogRedactsKeyOn429(t *testing.T) {
+	assertRetryLogRedacts(t, http.StatusTooManyRequests)
+}
+
+func TestRetryLogRedactsKeyOn5xx(t *testing.T) {
+	// 529 is the 5xx this client retries, so the dependency logs typesafe retry.
+	assertRetryLogRedacts(t, statusOverloaded)
+}
+
+func TestRetryLogRedactsKeyWithResponseCache(t *testing.T) {
+	assertRetryLogRedacts(t, http.StatusTooManyRequests, WithResponseCache(t.TempDir()))
+}
+
+func assertRetryLogRedacts(t *testing.T, status int, extra ...Option) {
+	t.Helper()
+	const key = "sk-live-abc123XYZ"
+	url := bodyServer(t, status, "application/json",
+		`{"detail":{"error_type":"echo","message":"rejected Bearer `+key+`"}}`)
+	setEnv(t, key, url)
+	t.Setenv("TYPESAFE_LOG_LEVEL", "info")
+
+	var logs bytes.Buffer
+	c, err := NewClient(append([]Option{logsTo(&logs), fastBackoff}, extra...)...)
+	if err != nil {
+		t.Fatalf("NewClient() error: %v", err)
+	}
+	_, _ = c.SystemOne(context.Background(), safeRequest())
+
+	out := logs.String()
+	if !strings.Contains(out, "typesafe retry") {
+		t.Fatalf("info logs missing the typesafe retry line, got: %q", out)
+	}
+	if strings.Contains(out, key) {
+		t.Errorf("logs contain the API key: %s", out)
+	}
+	if !strings.Contains(out, "[REDACTED]") {
+		t.Errorf("logs have no redaction marker: %s", out)
+	}
+}

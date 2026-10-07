@@ -1,26 +1,27 @@
-# jev-decide Context & Boundaries
+# go-decide Context & Boundaries
 
 ## Core Architectural Identity
 
-`jev-decide` is a thin, strongly typed Go client and CLI for TypeSafe AI's Jev
-(System One) model, aimed at fast-path decision support. It provides `ask`,
-`score` and `eval` commands built on `ax-go`, plus an optional pre-screen for
-the `decide` skill. It turns Jev's `choice`, `score` and `noul` answers into
-values callers cannot misuse: typed option sets, validated probabilities and
-a result that forces the caller to handle low confidence.
+`go-decide` is a thin, strongly typed Go client and CLI for System One
+models, aimed at fast-path decision support. It asks a System One model, Jev
+by default. It provides `ask`, `score` and `eval` commands built on `ax-go`,
+plus an optional pre-screen for the `decide` skill. It turns Jev's `choice`,
+`score` and `noul` answers into values callers cannot misuse: typed option
+sets, validated probabilities and a result that forces the caller to handle
+low confidence.
 
 The repository is a research workspace (probes, spikes, a draft
 `finfocus-spec` proposal) that has started to grow product code: `jevclient/`
 (the configured Jev client and its error classification), `decision/` (the
 validated `Probability`, `Thresholds`, `Levels` and `Spec` types, the sealed
 `Result` and `ScoreResult`, and `Choose` and `Rate`), `eval/` (metrics over
-labelled results) and the CLI in `internal/cli` and `cmd/jev-decide`, which
+labelled results) and the CLI in `internal/cli` and `cmd/go-decide`, which
 ships `ask`, `score` and `eval`.
 
 ## Technical Boundaries ("Hard No's")
 
 - **No debate protocol.** Multi-agent adversarial debate stays in the
-  `decide` skill. `jev-decide` only supplies a fast-path pre-screen.
+  `decide` skill. `go-decide` only supplies a fast-path pre-screen.
 - **No auto-approval.** Jev ranks well but is not calibrated (Brier 0.236).
   Output must never authorize an action without a human or a higher-cost
   path. Low confidence escalates; it is never silently defaulted. A decided
@@ -45,7 +46,8 @@ ships `ask`, `score` and `eval`.
 - **No copied spike code.** Probe and spike tests are throwaway evidence;
   production code is rewritten.
 - **No name collision.** `gojev` is taken (`taigrr/gojev`, `wawan93/gojev`).
-  The published name is `jev-decide`.
+  Bare `decide` is the debate skill this tool escalates to. The published
+  name is `go-decide`.
 
 ## Data Source of Truth
 

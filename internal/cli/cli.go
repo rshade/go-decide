@@ -1,4 +1,4 @@
-// Package cli is the jev-decide command line: the ask and score commands on
+// Package cli is the go-decide command line: the ask and score commands on
 // ax-go, with versioned JSON output and an exit code per outcome.
 package cli
 
@@ -11,7 +11,7 @@ import (
 	ax "github.com/rshade/ax-go"
 	"github.com/spf13/cobra"
 
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 // Exit codes for an outcome that is not a failure. Failures use the shared
@@ -77,13 +77,17 @@ func Run(ctx context.Context, args []string, env Env) int {
 
 func newRoot(env Env, outcome *outcomeKind) *cobra.Command {
 	root := &cobra.Command{
-		Use:   "jev-decide",
-		Short: "Ask Jev a choice or score question and get a typed outcome",
-		Long: "jev-decide puts a choice (ask) or an ordered rubric (score) to TypeSafe AI's Jev model.\n" +
+		Use:     "go-decide",
+		Version: env.Version,
+		Short:   "Ask a System One model a choice or score question and get a typed outcome",
+		Long: "go-decide asks a System One model, Jev by default: a choice (ask) or an ordered rubric (score).\n" +
 			"The outcome is decided, uncertain or escalate, and only a decided outcome is one to act on.\n" +
 			"eval measures how well the confidence separates clear decisions from contested ones.\n" +
+			"The default thresholds (floor 0.5, confident 0.9) are placeholders until #6.\n" +
 			outcomeExitCodes + ", 1 to 4 failures; eval exits 0 with a report.",
 	}
+	// Print only the release version, so --version matches the ldflags value.
+	root.SetVersionTemplate("{{.Version}}\n")
 	root.AddCommand(newAskCommand(env, outcome), newScoreCommand(env, outcome), newEvalCommand(env))
 	return root
 }

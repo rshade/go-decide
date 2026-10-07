@@ -1,0 +1,8 @@
+# Ignores for paths nobody authors in this repo. Rules stay in
+# .markdownlint.yaml. Run with: npx markdownlint-cli2 "**/*.md"
+ignores:
+  - ".claude/skills/openspec-*/**"
+  - ".claude/commands/opsx/**"
+  - "openspec/changes/archive/**/tasks.md"
+  - "PR_MESSAGE.md"
+  - "CHANGELOG.md"

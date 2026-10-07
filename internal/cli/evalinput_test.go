@@ -11,7 +11,7 @@ import (
 
 	"github.com/rshade/ax-go/contract"
 
-	"github.com/rshade/jev-decide/eval"
+	"github.com/rshade/go-decide/eval"
 )
 
 const (

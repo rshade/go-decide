@@ -1,8 +1,18 @@
-# jev-decide
+# go-decide
 
-Typed decision support on top of TypeSafe AI's Jev (System One) API. The
-project is in early development; see [CONTEXT.md](CONTEXT.md) for boundaries and
-[ROADMAP.md](ROADMAP.md) for plans.
+Typed decision support on a System One model. Jev, from TypeSafe AI, is the
+default. The project is in early development; see [CONTEXT.md](CONTEXT.md)
+for boundaries and [ROADMAP.md](ROADMAP.md) for plans.
+
+## Install
+
+```sh
+go install github.com/rshade/go-decide/cmd/go-decide@latest
+```
+
+Each GitHub release also has archives for linux, darwin and windows, on
+amd64 and arm64, plus `checksums.txt`. v0.1.0 has no Docker image, Homebrew
+tap or deb/rpm package.
 
 ## Jev client
 
@@ -14,7 +24,7 @@ policies below, and calling `jev.New` directly bypasses them.
 | --- | --- |
 | `TYPESAFE_API_KEY` | Bearer token from `console.typesafe.ai/keys`. Required. Read only from the environment. |
 | `TYPESAFE_BASE_URL` | Optional endpoint. Must be `https`, or `http` to a loopback IP address. |
-| `TYPESAFE_LOG_LEVEL` | Optional: `debug`, `info`, `warn`, `error` or `off`. Logs to stderr with the key redacted. |
+| `TYPESAFE_LOG_LEVEL` | Optional: `debug`, `info`, `warn`, `error` or `off` (default off). Logs go to stderr. The key is replaced in every attribute. An invalid level makes `NewClient` return `jev.ErrConfig`. |
 
 Requests go to `https://api.typesafe.ai` by default. Redirects are never
 followed. Only 429 and 529 are retried (at most twice, within 30 seconds,
@@ -41,28 +51,44 @@ Keep the token in the environment or an ignored `.env`. Never commit it.
 
 ## Command line
 
-`jev-decide ask` and `jev-decide score` put a choice or an ordered rubric to Jev
-and print a versioned JSON outcome. The exit code says whether the answer can
-be acted on: 0 decided, 10 uncertain, 11 escalate, and 1 to 4 for failures.
+`go-decide` asks a System One model, Jev by default. `ask` and `score` put a
+choice or an ordered rubric to it and print a versioned JSON outcome. The
+exit code says whether the answer can be acted on: 0 decided, 10 uncertain,
+11 escalate, and 1 to 4 for failures.
 
 ```sh
-jev-decide ask --state "All 412 tests passed." --instructions "Ship it?" \
+go-decide ask --state "All 412 tests passed." --instructions "Ship it?" \
   --option ship="safe to release" --option hold="wait"
 ```
 
-`jev-decide eval` runs a labelled decision set through Jev and reports how well
+`go-decide eval` runs a labelled decision set through Jev and reports how well
 the confidence separates clear decisions from contested ones: accuracy,
 contested AUC, Brier score, and precision and recall per threshold. Use it to
 check the thresholds; it measures and never approves.
 
 ```sh
-jev-decide eval --decisions testdata/decisions.json \
+go-decide eval --decisions testdata/decisions.json \
   --truth testdata/decisions_truth.json --cache-dir .eval-cache
 ```
 
 Input is a JSON decision spec (`--spec file` or `-`), flags, or both. See
 [docs/jev-decide-cli.md](docs/jev-decide-cli.md) for the spec format, output
 fields, exit codes and the versioning policy.
+
+`schema_version` pins the JSON shape of each command's output. Shapes are
+pinned per version by golden files. The tool name and the threshold values
+are not part of that promise. The default thresholds, a floor of 0.5 and a
+confident level of 0.9, are placeholders until issue #6.
+
+## Probes
+
+The root `probe_*_test.go` and `jev_*_test.go` files are built only with
+`-tags probe`. They call the live API and spend money. `go test ./...` does
+not run them. Run one deliberately:
+
+```sh
+go test -tags probe -run TestJevRecommendations -count=1
+```
 
 ## Decisions
 

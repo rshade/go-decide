@@ -5,16 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`jev-decide`: a typed Go library and CLI for TypeSafe AI's Jev (System One)
-model, for fast-path decision support. The module path is
-`github.com/rshade/jev-decide`; the local directory is still named `gojev`, so
+`go-decide`: a typed Go library and CLI for System One decision models, Jev
+by default, for fast-path decision support. The module path is
+`github.com/rshade/go-decide`; the local directory is still named `gojev`, so
 do not rename it. `gojev` is taken upstream (`taigrr/gojev`, `wawan93/gojev`).
 
 Read `CONTEXT.md` before designing anything. Its "Hard No's" and verification
 list are the review bar: no auto-approval, no silent zero values, no bare-float
 probabilities, no API spend before validation, no schema change without a
 version bump, and no debate logic (that stays in the `decide` skill).
-`ROADMAP.md` maps work to GitHub issues in `rshade/jev-decide`.
+`ROADMAP.md` maps work to GitHub issues in `rshade/go-decide`.
 
 ## Commands
 
@@ -22,8 +22,8 @@ Go 1.27.1 is required (`ax-go` v0.7.0 needs it). There is no Makefile.
 
 ```sh
 go build ./...
-# safe, no spend:
-go test ./decision/... ./jevclient/... ./eval/... ./internal/... ./cmd/...
+# safe, no spend. Probes are behind -tags probe:
+go test ./...
 go test ./decision -run TestChooseTurnsConfidence -v   # single test
 go test ./internal/cli -run Golden -update   # rewrite golden files
 golangci-lint run ./...
@@ -31,13 +31,13 @@ npx markdownlint-cli2 "**/*.md"   # .markdownlint.yaml disables MD013 for tables
 mise exec -- openspec ...         # OpenSpec is pinned in mise.toml
 ```
 
-**Never run `go test ./...` or `go test` in the repository root casually.**
-The root `*_test.go` files are live probes and spikes that read `./.env`
-themselves, so unsetting `TYPESAFE_API_KEY` does not stop them, and they spend
-real money. Run one deliberately, e.g.
-`go test -run TestJevRecommendations -v -count=1`. The `live_test.go` files in
-`decision/` and `jevclient/` skip unless `TYPESAFE_API_KEY` is set in the
-environment (they do not read `.env`).
+**Probes need `-tags probe` and spend money.** The root `probe_*_test.go` and
+`jev_*_test.go` files are built only with that tag. `go test ./...` does not
+run them. Run one deliberately, for example
+`go test -tags probe -run TestJevRecommendations -count=1`. Those files read
+`./.env` themselves. The `live_test.go` files in `decision/` and `jevclient/`
+skip unless `TYPESAFE_API_KEY` is set in the environment (they do not read
+`.env`).
 
 ## Architecture
 
@@ -67,7 +67,7 @@ test:
   contested AUC, Brier, per-threshold precision/recall. Undefined metrics are
   an absent `Metric`, never 0. `OutcomeOf` mirrors `decision`'s unexported
   `classify` rule.
-- `internal/cli/` and `cmd/jev-decide/` implement `ask`, `score` and `eval` on
+- `internal/cli/` and `cmd/go-decide/` implement `ask`, `score` and `eval` on
   `ax.Execute`. `cli.Run` takes an injectable `Env` (stdio, `Getenv`,
   `NewClient(...jevclient.Option)`) so tests never touch the process. Output
   is a `contract` envelope with `data.schema_version`. Exit codes: 0 decided,
@@ -82,7 +82,7 @@ them pull in `ax`'s OpenTelemetry/gRPC dependencies.
 ### Output schema versioning
 
 Golden files in `internal/cli/testdata/golden/` pin every outcome and the
-`__schema` output per version (`*.v<N>.json`; the current version is 2). Any
+`__schema` output per version (`*.v<N>.json`; the current version is 3). Any
 change to output shape, including a new command in `__schema`, needs a
 `SchemaVersion` bump plus a new set of golden files, not an edit to the
 existing ones. Each golden case has a `since` version; a new command starts at

@@ -7,7 +7,7 @@ import (
 
 	"github.com/kataras/jev"
 
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 // ErrNilClient is returned by [Choose] when it is given no client.

@@ -199,7 +199,7 @@ in `.env`, which is gitignored, never in code.
 
 ## Decision (2026-09-29)
 
-`kataras/jev` is adopted, pinned at v0.1.0, and is the only client jev-decide
+`kataras/jev` is adopted, pinned at v0.1.0, and is the only client go-decide
 uses. It closes the client spike (#11) and reshapes #1: the module does not
 write a client, it configures this one through `jevclient.NewClient` and
 classifies failures through `jevclient.Classify` (see

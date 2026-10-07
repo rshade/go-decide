@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the machine contract of the `jev-decide` commands: versioned JSON
+Defines the machine contract of the `go-decide` commands: versioned JSON
 output, discovery through `__schema`, pinning by golden tests, and exit codes
 that tell an outcome apart from a failure.
 

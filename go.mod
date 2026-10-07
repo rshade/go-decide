@@ -1,4 +1,4 @@
-module github.com/rshade/jev-decide
+module github.com/rshade/go-decide
 
 go 1.27.1
 

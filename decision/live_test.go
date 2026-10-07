@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 func TestLiveChoose(t *testing.T) {

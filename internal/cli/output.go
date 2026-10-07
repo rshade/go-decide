@@ -1,10 +1,10 @@
 package cli
 
-import "github.com/rshade/jev-decide/decision"
+import "github.com/rshade/go-decide/decision"
 
 // SchemaVersion is the version of the JSON shape of every command's output.
 // Any change to a shape needs a new version and a new golden file.
-const SchemaVersion = 2
+const SchemaVersion = 3
 
 // ThresholdsOutput echoes the thresholds a run used.
 type ThresholdsOutput struct {

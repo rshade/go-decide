@@ -18,7 +18,7 @@ import (
 	"github.com/kataras/jev"
 	"github.com/rshade/ax-go/contract"
 
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 const goldenVersion = "v9.9.9-golden"
@@ -400,7 +400,7 @@ func TestSchemaListsBothCommands(t *testing.T) {
 	for _, c := range schema.Command.Commands {
 		found[c.Use] = strings.Contains(c.Long, fmt.Sprintf("schema_version: %d", SchemaVersion))
 	}
-	if r.code != 0 || schema.Tool != "jev-decide" || schema.Version != goldenVersion || !found["ask"] || !found["score"] {
+	if r.code != 0 || schema.Tool != "go-decide" || schema.Version != goldenVersion || !found["ask"] || !found["score"] {
 		t.Fatalf("__schema = exit %d tool %q version %q commands %v; want both commands with the output version", r.code, schema.Tool, schema.Version, found)
 	}
 	if r.hits != 0 {
@@ -420,5 +420,15 @@ func TestSchemaListsBothCommands(t *testing.T) {
 				t.Errorf("__schema lists no --%s flag for %s", name, c.Use)
 			}
 		}
+	}
+}
+
+func TestVersionFlagPrintsTheInjectedVersion(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := Run(context.Background(), []string{"--version"}, Env{
+		Stdout: &stdout, Stderr: &stderr, Version: goldenVersion,
+	})
+	if code != 0 || stdout.String() != goldenVersion+"\n" || stderr.Len() != 0 {
+		t.Fatalf("--version exit %d stdout %q stderr %q, want %s", code, stdout.String(), stderr.String(), goldenVersion)
 	}
 }

@@ -7,8 +7,8 @@ import (
 	"github.com/rshade/ax-go/contract"
 	"github.com/spf13/cobra"
 
-	"github.com/rshade/jev-decide/decision"
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/decision"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
@@ -21,8 +21,8 @@ func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
 		Long: "score rates the state against ordered levels and prints the outcome as a JSON envelope.\n" +
 			"Only a decided outcome has a level; the other two name the nearest level only.\n" +
 			fmt.Sprintf("Output schema_version: %d. %s.", SchemaVersion, outcomeExitCodes),
-		Example: `  jev-decide score --spec incident.json
-  jev-decide score --state "checkout fails for half of users" --level minor="cosmetic" --level major="cannot buy"`,
+		Example: `  go-decide score --spec incident.json
+  go-decide score --state "checkout fails for half of users" --level minor="cosmetic" --level major="cannot buy"`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()

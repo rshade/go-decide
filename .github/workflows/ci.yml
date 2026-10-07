@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # mise.toml pins the same Go as go.mod, plus golangci-lint and OpenSpec.
+      # setup-go then selects the toolchain from go.mod, so a go.mod bump is
+      # what CI builds with even if the mise pin lags.
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+
+      - name: Set up Go from go.mod
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build ./...
+
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race ./...
+        env:
+          TYPESAFE_API_KEY: ""
+
+      - name: golangci-lint
+        run: golangci-lint run ./...
+
+      - name: markdownlint
+        run: npx --yes markdownlint-cli2 "**/*.md"
+
+      - name: OpenSpec
+        run: mise exec -- openspec validate --all --strict
+
+      - name: commitlint
+        env:
+          COMMITLINT_FROM: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -eu
+          if [ -z "${COMMITLINT_FROM}" ] || [ "${COMMITLINT_FROM}" = "0000000000000000000000000000000000000000" ]; then
+            npx --yes @commitlint/cli --from HEAD~1 --to HEAD --verbose
+          else
+            npx --yes @commitlint/cli --from "${COMMITLINT_FROM}" --to "${GITHUB_SHA}" --verbose
+          fi

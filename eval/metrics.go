@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/rshade/jev-decide/decision"
+	"github.com/rshade/go-decide/decision"
 )
 
 // ErrNoResults is returned by [Compute] for an empty result set.

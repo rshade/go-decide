@@ -1,27 +1,28 @@
-# jev-decide command line
+# go-decide command line
 
-`jev-decide` puts a choice (`ask`) or an ordered rubric (`score`) to Jev and
-prints a typed outcome. Only a decided outcome is one to act on. `eval`
-measures how well Jev's confidence separates clear decisions from contested
-ones on a labelled set.
+`go-decide` asks a System One model, Jev by default. `ask` puts a choice and
+`score` an ordered rubric to it, and prints a typed outcome. Only a decided
+outcome is one to act on. `eval` measures how well confidence separates clear
+decisions from contested ones on a labelled set.
 
 ## Commands
 
 ```sh
-jev-decide ask   --spec decision.json
-jev-decide ask   --state "all tests passed" --instructions "Ship it?" \
-                 --option ship="safe to release" --option hold="wait"
-jev-decide score --spec incident.json
-jev-decide score --state "checkout fails" --level minor="cosmetic" \
-                 --level major="cannot buy"
-jev-decide eval  --decisions testdata/decisions.json \
-                 --truth testdata/decisions_truth.json
-jev-decide __schema
+go-decide ask   --spec decision.json
+go-decide ask   --state "all tests passed" --instructions "Ship it?" \
+                --option ship="safe to release" --option hold="wait"
+go-decide score --spec incident.json
+go-decide score --state "checkout fails" --level minor="cosmetic" \
+                --level major="cannot buy"
+go-decide eval  --decisions testdata/decisions.json \
+                --truth testdata/decisions_truth.json
+go-decide __schema
 ```
 
 All three commands take the same thresholds: `--floor` (default 0.5) and
-`--confident` (default 0.9). The defaults are placeholders until they are tuned
-on real decisions. The token comes from `TYPESAFE_API_KEY`, never a flag.
+`--confident` (default 0.9). The defaults are placeholders until issue #6
+tunes them on real decisions. The token comes from `TYPESAFE_API_KEY`, never
+a flag. `--help` says the same.
 
 ## Decision spec
 
@@ -147,11 +148,13 @@ error codes behind them. Codes 5 to 9 are left free.
 
 ## Output version
 
-`schema_version` is 2. Version 2 added `eval`; the `ask` and `score` shapes are
-unchanged from version 1. The output of every command, and `__schema`, is pinned
-by golden files in `internal/cli/testdata/golden/`, one per version. A change to
-a shape fails the tests until `SchemaVersion` is increased and golden files for
-the new version are added. An output that first appears in a later version has
-golden files from that version on. Earlier golden files stay, and a test fails
-if one is edited or removed. Regenerate the current version's files with `go
-test ./internal/cli -run Golden -update`.
+`schema_version` is 3. Version 2 added `eval`. Version 3 renamed the tool to
+`go-decide`; the `ask`, `score` and `eval` shapes are otherwise unchanged.
+`schema_version` pins those shapes, one golden file per version under
+`internal/cli/testdata/golden/`. The tool name and the threshold values are
+not part of that promise. A change to a shape fails the tests until
+`SchemaVersion` is increased and golden files for the new version are added.
+An output that first appears in a later version has golden files from that
+version on. Earlier golden files stay, and a test fails if one is edited or
+removed. Regenerate the current version's files with
+`go test ./internal/cli -run Golden -update`.

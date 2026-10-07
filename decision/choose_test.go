@@ -16,7 +16,7 @@ import (
 	"github.com/kataras/jev"
 	"github.com/rshade/ax-go/contract"
 
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 func setEnv(t *testing.T, baseURL string) {

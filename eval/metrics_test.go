@@ -6,7 +6,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/rshade/jev-decide/decision"
+	"github.com/rshade/go-decide/decision"
 )
 
 func dominant(t *testing.T, pick string, confidence float64) Result {

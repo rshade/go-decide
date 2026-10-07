@@ -17,6 +17,5 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
-          # RELEASE_PLEASE_TOKEN is optional. An empty secret fails the action,
-          # so the always-present GITHUB_TOKEN is the fallback.
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          # A token other than GITHUB_TOKEN, or the release PR does not trigger CI.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}

@@ -5,7 +5,6 @@ package release
 import (
 	"encoding/json"
 	"os"
-	"regexp"
 	"testing"
 )
 
@@ -52,10 +51,10 @@ func TestReleasePleaseConfig(t *testing.T) {
 	}
 }
 
-func TestReleasePleaseManifestIsSemver(t *testing.T) {
+func TestReleasePleaseManifestStaysAtZero(t *testing.T) {
 	var manifest map[string]string
 	readJSON(t, "../../.release-please-manifest.json", &manifest)
-	if !regexp.MustCompile(`^\d+\.\d+\.\d+$`).MatchString(manifest["."]) {
-		t.Errorf(`manifest version %q is not MAJOR.MINOR.PATCH`, manifest["."])
+	if manifest["."] != "0.0.0" {
+		t.Errorf(`manifest "." = %q, want 0.0.0 until the first release PR merges`, manifest["."])
 	}
 }

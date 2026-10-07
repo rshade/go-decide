@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/rshade/jev-decide/decision"
+	"github.com/rshade/go-decide/decision"
 )
 
 func prob(t *testing.T, f float64) decision.Probability {

@@ -1,4 +1,4 @@
-// Package jevclient builds the Jev client used by jev-decide and classifies
+// Package jevclient builds the Jev client used by go-decide and classifies
 // its failures.
 //
 // [NewClient] is the supported constructor. It returns a [jev.Client] with
@@ -15,6 +15,10 @@
 //     honoring Retry-After up to 10 seconds. Timeouts and
 //     connection failures are not retried, because the server may already have
 //     processed the request.
+//   - Logging follows TYPESAFE_LOG_LEVEL: debug, info, warn, error or off.
+//     Unset or off writes nothing. Otherwise logs go to stderr, and the API
+//     key is replaced in every attribute. An invalid level makes NewClient
+//     return jev.ErrConfig.
 //   - A successful response that omits a requested answer, answers with a
 //     different type, or reports a probability outside 0 to 1 is an error, never
 //     a zero value.

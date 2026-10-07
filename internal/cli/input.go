@@ -10,7 +10,7 @@ import (
 	"github.com/rshade/ax-go/contract"
 	"github.com/spf13/cobra"
 
-	"github.com/rshade/jev-decide/decision"
+	"github.com/rshade/go-decide/decision"
 )
 
 const specFlagUsage = "decision spec as a JSON file, or - for standard input"
@@ -31,8 +31,8 @@ func (f *inputFlags) register(cmd *cobra.Command) {
 }
 
 func (f *inputFlags) registerThresholds(cmd *cobra.Command) {
-	cmd.Flags().Float64Var(&f.floor, "floor", 0, "confidence below which the outcome is escalate (default 0.5)")
-	cmd.Flags().Float64Var(&f.confident, "confident", 0, "confidence at or above which the outcome is decided (default 0.9)")
+	cmd.Flags().Float64Var(&f.floor, "floor", 0, "confidence below which the outcome is escalate (default 0.5, a placeholder until #6)")
+	cmd.Flags().Float64Var(&f.confident, "confident", 0, "confidence at or above which the outcome is decided (default 0.9, a placeholder until #6)")
 }
 
 // loadSpec reads the document named by --spec and merges the flag values into it.

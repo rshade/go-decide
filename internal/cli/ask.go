@@ -7,8 +7,8 @@ import (
 	"github.com/rshade/ax-go/contract"
 	"github.com/spf13/cobra"
 
-	"github.com/rshade/jev-decide/decision"
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/decision"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
@@ -21,8 +21,8 @@ func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
 		Long: "ask puts a choice question to Jev and prints the outcome as a JSON envelope.\n" +
 			"Only a decided outcome has a choice; the other two name a leading option only.\n" +
 			fmt.Sprintf("Output schema_version: %d. %s.", SchemaVersion, outcomeExitCodes),
-		Example: `  jev-decide ask --spec decision.json
-  jev-decide ask --state "all tests passed" --instructions "Ship it?" --option ship="safe to release" --option hold=wait`,
+		Example: `  go-decide ask --spec decision.json
+  go-decide ask --state "all tests passed" --instructions "Ship it?" --option ship="safe to release" --option hold=wait`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()

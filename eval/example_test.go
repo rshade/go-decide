@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/rshade/jev-decide/decision"
-	"github.com/rshade/jev-decide/eval"
+	"github.com/rshade/go-decide/decision"
+	"github.com/rshade/go-decide/eval"
 )
 
 func ExampleCompute() {

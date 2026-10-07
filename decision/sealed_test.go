@@ -42,7 +42,7 @@ func buildSnippet(t *testing.T, source string) (string, error) {
 
 const allHandlers = `package main
 
-import "github.com/rshade/jev-decide/decision"
+import "github.com/rshade/go-decide/decision"
 
 func main() {
 	var r decision.Result[string]
@@ -56,7 +56,7 @@ func main() {
 
 const missingHandler = `package main
 
-import "github.com/rshade/jev-decide/decision"
+import "github.com/rshade/go-decide/decision"
 
 func main() {
 	var r decision.Result[string]
@@ -69,7 +69,7 @@ func main() {
 
 const foreignResult = `package main
 
-import "github.com/rshade/jev-decide/decision"
+import "github.com/rshade/go-decide/decision"
 
 type fake struct{}
 
@@ -111,7 +111,7 @@ func TestNoCodeOutsideThePackageCanCreateAResult(t *testing.T) {
 
 const scoreMissingHandler = `package main
 
-import "github.com/rshade/jev-decide/decision"
+import "github.com/rshade/go-decide/decision"
 
 func main() {
 	var r decision.ScoreResult[string]
@@ -124,7 +124,7 @@ func main() {
 
 const scoreForeignResult = `package main
 
-import "github.com/rshade/jev-decide/decision"
+import "github.com/rshade/go-decide/decision"
 
 type fake struct{}
 

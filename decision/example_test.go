@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/rshade/jev-decide/decision"
-	"github.com/rshade/jev-decide/jevclient"
+	"github.com/rshade/go-decide/decision"
+	"github.com/rshade/go-decide/jevclient"
 )
 
 type Action string
