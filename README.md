@@ -170,14 +170,18 @@ All three commands accept `--backend` and `--dry-run`.
 
 - **Decided does not mean approved.** The model ranks options well but its
   confidence is not calibrated. Treat `decided` as "clear enough to skip a
-  second look", not as sign-off.
+  second look", not as sign-off. In one run of the 40-decision probe at the
+  default thresholds, 2 of Jev's 20 `decided` outcomes and 4 of clef's 24
+  were not safe to fast-path.
 - **The thresholds are placeholders.** The floor of 0.5 and confident level of
   0.9 stay provisional until issue #6 tunes them on real decisions. A clear-cut
   question can land at `uncertain` under these defaults. Set `--floor` and
   `--confident` to tune them, and use `eval` to check your choice.
 - **Backends differ.** On the 40-decision probe, clef separated contested
-  decisions less sharply than Jev. Do not carry thresholds tuned for one
-  backend over to the other.
+  decisions less sharply than Jev (AUC 0.94 against 0.98 in one run). Both
+  backends start from the same 0.5 and 0.9 placeholders, but each is meant to
+  be tuned on its own, so do not carry thresholds tuned for one backend over
+  to the other.
 - **Answers vary.** Identical calls can return slightly different
   `confidence` and `probabilities`.
 - **Calls cost money.** Validate with `--dry-run` first. `eval` can cache

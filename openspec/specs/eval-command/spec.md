@@ -13,15 +13,43 @@ so that the thresholds can be checked and tuned on evidence.
 The system SHALL provide an `eval` command that reads a decision set
 (`--decisions`) and a truth file (`--truth`), both JSON files in the format of
 `testdata/decisions.json` and `testdata/decisions_truth.json`. For each
-decision it SHALL ask Jev one choice question. The question's state is the
-decision's title, context, constraints and options. Its options are the
-decision's option names, with descriptions. Its instructions default to
-"Given the stated constraints, which option should the team choose?" and can
-be replaced with `--instructions`. The command SHALL accept `--floor` and
-`--confident` as `ask` does. It SHALL print one JSON envelope with the
-metrics, the per-threshold rows, the outcome counts, the thresholds used and
-one row per decision. Each row holds the decision's id, class, pick, pick
-confidence, correct option, whether it was safe to fast-path, and its outcome.
+decision it SHALL ask Jev one choice question. The command SHALL accept
+`--floor` and `--confident` as `ask` does.
+
+#### Scenario: One choice question per decision
+
+- **WHEN** `eval` runs on the bundled decision set
+- **THEN** the server receives one choice question per decision
+
+#### Scenario: Threshold flags
+
+- **WHEN** `eval` is run with `--floor 0.4 --confident 0.8`
+- **THEN** the report states 0.4 and 0.8 as the thresholds used
+
+### Requirement: The eval question is built from the decision
+
+The question's state SHALL be the decision's title, context, constraints and
+options. Its options SHALL be the decision's option names, with descriptions.
+Its instructions SHALL default to "Given the stated constraints, which option
+should the team choose?" and can be replaced with `--instructions`.
+
+#### Scenario: Default instructions
+
+- **WHEN** `eval` is run without `--instructions`
+- **THEN** every request carries "Given the stated constraints, which option should
+  the team choose?"
+
+#### Scenario: Custom instructions
+
+- **WHEN** `eval` is run with `--instructions "Which option fits best?"`
+- **THEN** every request carries those instructions
+
+### Requirement: eval prints one report envelope
+
+The system SHALL print one JSON envelope with the metrics, the per-threshold
+rows, the outcome counts, the thresholds used and one row per decision. Each
+row holds the decision's id, class, pick, pick confidence, correct option,
+whether it was safe to fast-path, and its outcome.
 
 #### Scenario: Report for the bundled set
 
@@ -32,11 +60,6 @@ confidence, correct option, whether it was safe to fast-path, and its outcome.
   accuracy, contested AUC and Brier score, and the per-threshold rows, and the
   exit code is 0
 
-#### Scenario: Custom instructions
-
-- **WHEN** `eval` is run with `--instructions "Which option fits best?"`
-- **THEN** every request carries those instructions
-
 ### Requirement: Both files are validated before any request
 
 The system SHALL validate both files completely before sending any request.
@@ -45,20 +68,23 @@ Validation SHALL fail when:
 - a file is missing, empty or malformed
 - a decision or truth id is empty or repeated
 - the two files do not hold the same set of ids
-- a class is neither `dominant` nor `contested`
-- a dominant entry's correct option is missing or is not one of its options
-- a contested entry has a correct option
 - a decision does not form a valid choice question, by the rules `ask`
   applies
 
-- a decision or truth entry has a field the format does not define. A
-  decision defines `id`, `title`, `context`, `constraints` and `options`. A
-  truth entry defines `id`, `class`, `correct_option` and `why`.
-- an option has no `name`
+The failure SHALL name the id and field at fault and exit 2.
 
-The failure SHALL name the id and field at fault and exit 2. An option object
-is content: fields beyond `name` and `description` SHALL be kept in the
-question's state, not rejected.
+#### Scenario: Ids do not match
+
+- **WHEN** the decision set has `dec-041` and the truth file does not
+- **THEN** the command fails naming `dec-041` and sends nothing
+
+### Requirement: Class and correct option are validated
+
+Validation SHALL also fail when:
+
+- a class is neither `dominant` nor `contested`
+- a dominant entry's correct option is missing or is not one of its options
+- a contested entry has a correct option
 
 #### Scenario: Truth names an option that does not exist
 
@@ -67,10 +93,17 @@ question's state, not rejected.
 - **THEN** the command fails naming `dec-001` and the correct option, the
   server has received zero requests, and the exit code is 2
 
-#### Scenario: Ids do not match
+### Requirement: Entries are validated against the file format
 
-- **WHEN** the decision set has `dec-041` and the truth file does not
-- **THEN** the command fails naming `dec-041` and sends nothing
+Validation SHALL also fail when:
+
+- a decision or truth entry has a field the format does not define. A
+  decision defines `id`, `title`, `context`, `constraints` and `options`. A
+  truth entry defines `id`, `class`, `correct_option` and `why`.
+- an option has no `name`
+
+An option object is content: fields beyond `name` and `description` SHALL be
+kept in the question's state, not rejected.
 
 #### Scenario: Unknown top-level field
 

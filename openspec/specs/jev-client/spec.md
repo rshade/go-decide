@@ -138,21 +138,24 @@ repository are separate and may read `.env` by design.
 The client SHALL offer an opt-in response cache in a directory the caller
 names, and SHALL write nothing to disk unless the cache is turned on. With the
 cache on, a request whose method, scheme, host, path and body match a cached
-entry SHALL be answered from the cache without a network call. Only successful
-responses that answer every question asked SHALL be stored. Errors, retried
-statuses, redirects and a response missing an answer SHALL NOT be stored. The
-cache key and the stored entry SHALL NOT contain the credential or any request
-header. The directory SHALL be created readable only by its owner, and entries
-SHALL be written readable only by their owner. An entry that cannot be read or
-parsed SHALL be treated as a miss and replaced, never returned. The client's
-other guarantees, including the endpoint restriction, the refusal to follow
-redirects and the retry policy, SHALL be the same with the cache on.
+entry SHALL be answered from the cache without a network call.
 
 #### Scenario: Hit sends nothing
 
 - **WHEN** the same request is made twice with the cache on
 - **THEN** the server receives one request and both calls return the same
   answer
+
+#### Scenario: Cache off by default
+
+- **WHEN** a client is constructed without the cache option and makes a call
+- **THEN** no file is written
+
+### Requirement: Only complete successful responses are cached
+
+Only successful responses that answer every question asked SHALL be stored.
+Errors, retried statuses, redirects and a response missing an answer SHALL NOT
+be stored.
 
 #### Scenario: Failure is not cached
 
@@ -165,17 +168,33 @@ redirects and the retry policy, SHALL be the same with the cache on.
 - **WHEN** the server returns 200 with an answer to a different question
 - **THEN** nothing is cached and the same request reaches the server again
 
+### Requirement: Cache entries are private and never hold the credential
+
+The cache key and the stored entry SHALL NOT contain the credential or any
+request header. The directory SHALL be created readable only by its owner, and
+entries SHALL be written readable only by their owner.
+
 #### Scenario: Credential stays out of the cache
 
 - **WHEN** a response is cached
 - **THEN** no file in the cache directory contains the token
+
+### Requirement: A corrupt cache entry is a miss
+
+An entry that cannot be read or parsed SHALL be treated as a miss and
+replaced, never returned.
 
 #### Scenario: Corrupt entry
 
 - **WHEN** a cached entry has been truncated
 - **THEN** the request reaches the server and the entry is replaced
 
-#### Scenario: Cache off by default
+### Requirement: The cache does not change the client's other guarantees
 
-- **WHEN** a client is constructed without the cache option and makes a call
-- **THEN** no file is written
+The client's other guarantees, including the endpoint restriction, the refusal
+to follow redirects and the retry policy, SHALL be the same with the cache on.
+
+#### Scenario: Redirect still refused with the cache on
+
+- **WHEN** the cache is on and the server answers with a redirect
+- **THEN** the client returns an error, follows nothing and stores nothing

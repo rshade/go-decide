@@ -162,11 +162,7 @@ be an error and never a result.
 The system SHALL validate a choice question before sending any request, so an
 invalid question costs no API spend. It SHALL reject a question whose state is
 absent or empty, and a question whose estimated size clearly exceeds the 32k
-limit for state plus the longest question. The size estimate SHALL err toward
-accepting: a question near the limit is sent and left for the API to judge.
-Every rejection SHALL be an error that names the offending field and gives the
-reason, and callers SHALL be able to recognise it as a validation failure and
-read the field name programmatically.
+limit for state plus the longest question.
 
 #### Scenario: Absent state
 
@@ -200,11 +196,6 @@ read the field name programmatically.
 - **THEN** it is rejected with an error naming the state field and no request is
   sent
 
-#### Scenario: State near the limit
-
-- **WHEN** the estimated size is under the limit
-- **THEN** the question is sent
-
 #### Scenario: Invalid question makes no HTTP call
 
 - **WHEN** any invalid question is given to the choice operation
@@ -216,3 +207,21 @@ read the field name programmatically.
 - **WHEN** a question with non-empty state, valid options and any instructions,
   including none, is given to the choice operation
 - **THEN** it is sent and answered as before
+
+### Requirement: A question rejection is a typed field error
+
+The size estimate SHALL err toward accepting: a question near the limit is sent
+and left for the API to judge. Every rejection SHALL be an error that names the
+offending field and gives the reason, and callers SHALL be able to recognise it
+as a validation failure and read the field name programmatically.
+
+#### Scenario: State near the limit
+
+- **WHEN** the estimated size is under the limit
+- **THEN** the question is sent
+
+#### Scenario: Rejection names the field
+
+- **WHEN** a question is rejected for any reason
+- **THEN** the error names the offending field and gives the reason, and a
+  caller can recognise it as a validation failure and read the field name
