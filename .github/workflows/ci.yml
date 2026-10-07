@@ -56,7 +56,11 @@ jobs:
           COMMITLINT_FROM: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
           set -eu
-          if [ -z "${COMMITLINT_FROM}" ] || [ "${COMMITLINT_FROM}" = "0000000000000000000000000000000000000000" ]; then
+          # A force-push leaves github.event.before out of the checkout, so
+          # an unknown or empty start falls back to the head commit.
+          if [ -z "${COMMITLINT_FROM}" ] \
+            || [ "${COMMITLINT_FROM}" = "0000000000000000000000000000000000000000" ] \
+            || ! git cat-file -e "${COMMITLINT_FROM}^{commit}" 2>/dev/null; then
             mise exec -- commitlint --from HEAD~1 --to HEAD --verbose
           else
             mise exec -- commitlint --from "${COMMITLINT_FROM}" --to "${GITHUB_SHA}" --verbose
