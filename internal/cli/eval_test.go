@@ -283,6 +283,31 @@ func TestEvalDryRunNeedsNoKeyAndSendsNothing(t *testing.T) {
 	}
 }
 
+func TestEvalDryRunJSONIsTheSameTwice(t *testing.T) {
+	args := []string{"--dry-run", "eval", "--decisions", bundledDecisions, "--truth", bundledTruth}
+	first := executeAt(t, "http://127.0.0.1:1", "", args)
+	second := executeAt(t, "http://127.0.0.1:1", "", args)
+	if first.code != 0 || second.code != 0 {
+		t.Fatalf("exits %d and %d, stderr %s %s", first.code, second.code, first.stderr, second.stderr)
+	}
+	if first.stdout != second.stdout {
+		t.Fatalf("dry-run JSON differed\nfirst:  %s\nsecond: %s", first.stdout, second.stdout)
+	}
+	out := decode[EvalDryRunOutput](t, first)
+	if !out.DryRun || out.SchemaVersion != SchemaVersion || out.Decisions != 40 {
+		t.Fatalf("dry run = %+v", out)
+	}
+}
+
+func TestEvalDryRunKeepsAnExplicitIdempotencyKey(t *testing.T) {
+	args := []string{"--dry-run", "--idempotency-key", "same-key", "eval", "--decisions", bundledDecisions, "--truth", bundledTruth}
+	first := executeAt(t, "http://127.0.0.1:1", "", args)
+	second := executeAt(t, "http://127.0.0.1:1", "", args)
+	if first.code != 0 || first.stdout != second.stdout || !strings.Contains(first.stdout, `"idempotency_key":"same-key"`) {
+		t.Fatalf("exits %d stdout %s\n%s", first.code, first.stdout, second.stdout)
+	}
+}
+
 func TestEvalDryRunOfTheBundledSet(t *testing.T) {
 	r := executeAt(t, "http://127.0.0.1:1", "", []string{"--dry-run", "eval", "--decisions", bundledDecisions, "--truth", bundledTruth})
 	out := decode[EvalDryRunOutput](t, r)

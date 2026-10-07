@@ -40,7 +40,7 @@ func newEvalCommand(env Env) *cobra.Command {
 				return err
 			}
 			if contract.DryRunFromContext(ctx) {
-				return ax.WriteJSON(cmd.OutOrStdout(), ax.NewEnvelope(ctx, evalDryRunOutput(items, thresholds)))
+				return writeDryRun(cmd, evalDryRunOutput(items, thresholds))
 			}
 
 			var opts []jevclient.Option

@@ -43,7 +43,7 @@ func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
 				return err
 			}
 			if contract.DryRunFromContext(ctx) {
-				return ax.WriteJSON(cmd.OutOrStdout(), ax.NewEnvelope(ctx, dryRunOutput("score", spec.Levels, thresholds)))
+				return writeDryRun(cmd, dryRunOutput("score", spec.Levels, thresholds))
 			}
 			client, err := env.NewClient()
 			if err != nil {

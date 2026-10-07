@@ -43,7 +43,7 @@ func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
 				return err
 			}
 			if contract.DryRunFromContext(ctx) {
-				return ax.WriteJSON(cmd.OutOrStdout(), ax.NewEnvelope(ctx, dryRunOutput("choice", spec.Options, thresholds)))
+				return writeDryRun(cmd, dryRunOutput("choice", spec.Options, thresholds))
 			}
 			client, err := env.NewClient()
 			if err != nil {
