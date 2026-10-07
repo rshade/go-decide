@@ -2,7 +2,7 @@
 # Keep in sync with the `go` directive in go.mod.
 go = "1.27.1"
 # Runs the npm tools below. Pinned so CI and local runs match.
-node = "22.23.3"
+node = "24.21.0"
 # CI installs this pin. 2.14.0 matches the finfocus plugins.
 golangci-lint = "2.14.0"
 # Release binary building, used by .github/workflows/release.yml.
