@@ -1,18 +1,18 @@
 ---
-description: Choose one roadmap issue, claim it, route it through OpenSpec or straight to code, land it on main, and release the claim — safe to run on several machines at once
+description: Choose one roadmap issue, claim it, route it through OpenSpec or straight to code, land it as a pull request, and release the claim — safe to run on several machines at once
 ---
 
 # Pick a Roadmap Issue — One Issue Per Invocation
 
-Choose exactly one open `roadmap/current` issue, claim it, take it to a
-commit on `main`, and release the claim. Then **stop**.
+Choose exactly one open `roadmap/current` issue, claim it, take it to an
+open pull request from its own worktree, and release the claim. Then **stop**.
 
 Adapted from the ax-go command of the same name. The claim protocol is
 borrowed, with the hardening tailscale-utils added after it raced in practice.
 Almost everything else differs: go-decide is a **single small Go module that
-uses OpenSpec, not Spec Kit**, has no Makefile, and **commits straight to
-`main` until v0.1.0 ships** instead of landing pull requests. CI runs on
-push and pull request.
+uses OpenSpec, not Spec Kit**, has no Makefile, and **lands every change as a
+pull request** from a worktree, since v0.1.0 shipped. CI runs on push and
+pull request and must pass before a merge.
 
 **Scope: one issue. Do not pick up a second one.** Re-invoke to continue.
 
@@ -37,18 +37,19 @@ push and pull request.
 ```bash
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
-git rev-parse --abbrev-ref HEAD    # must be main
-git status --short                 # no staged/modified tracked files
-git pull --rebase
+git rev-parse --abbrev-ref HEAD    # the main checkout should be on main
+git status --short                 # report, but do not touch, tracked changes
+git fetch origin
 # --search is fuzzy (it matches roadmap/exclude), so match the name exactly
 gh label list --limit 200 --json name -q '.[].name' \
   | grep -qx 'processing:roadmap' || echo "processing:roadmap missing"
 ```
 
 `.env`, `.probe-cache/` and `PR_MESSAGE.md` are ignored and expected. **Never
-`git add -A` or `git add .`**; name only the files you changed. If the tree
-has uncommitted tracked changes, stop and report; do not stash someone else's
-work.
+`git add -A` or `git add .`**; name only the files you changed. Uncommitted
+tracked changes in the main checkout may belong to another writer, such as a
+docs session. Report them, never stash, reset or commit them, and do the work
+in the Phase 3 worktree, which starts from `origin/main` and is unaffected.
 
 If the `processing:roadmap` label does not exist yet, ask before creating it:
 
@@ -83,6 +84,15 @@ touch:
 - `ROADMAP.md`, `go.mod`, `mise.toml`
 
 ### 1b. Build the candidate list
+
+An issue that already has an open pull request is in review, not free. List
+the open pull requests first and skip any issue they close or reference, or
+whose branch is named `issue-<N>`:
+
+```bash
+gh pr list --state open --json number,title,headRefName,body \
+  -q '.[] | "#\(.number)\t\(.headRefName)\t\(.title)"'
+```
 
 ```bash
 gh issue list --state open --label roadmap/current --limit 100 \
@@ -249,15 +259,19 @@ mise exec -- openspec archive "<slug>" -y                   # -y or it blocks
 `openspec/specs/` alongside the implementation. Archive after verify passes,
 before Phase 5.
 
-## Phase 3 — Work it on `main`
+## Phase 3 — Work it in a worktree
 
-Until v0.1.0 ships, work happens in the main checkout on `main`. **No
-branch, no worktree, no PR.** The repo has no CI to protect a branch, so a PR
-adds ceremony without a gate.
+Every change lands as a pull request, so work happens in a worktree on its own
+branch, never in the main checkout:
 
-After v0.1.0, this phase becomes
-`git worktree add ../gojev-"$N" -b issue-"$N" origin/main`, and Phase 6
-becomes a PR. Update this file when that happens.
+```bash
+git worktree add ../gojev-"$N" -b issue-"$N" origin/main
+cd ../gojev-"$N"
+```
+
+Run every later phase from that worktree. The branch name is `issue-<N>` for an
+issue, or `fix/<slug>` or `docs/<slug>` for work with no issue. Keep scratch
+output and temporary files in the session scratchpad, not in the worktree.
 
 ## Phase 4 — Verify
 
@@ -267,9 +281,12 @@ gofmt -l .                       # must print nothing
 go vet ./...
 go test ./...                    # offline; probes need -tags probe
 golangci-lint run ./...
-npx markdownlint-cli2 "**/*.md"
+mise exec -- markdownlint-cli2 "**/*.md"
 mise exec -- openspec validate --all --strict
 ```
+
+CI runs the same checks with the tool versions pinned in `mise.toml`, plus
+`go test -race` and commitlint, so a green local run should be a green CI run.
 
 > [!CAUTION]
 > **Probes need `-tags probe` and spend money.** The root `probe_*_test.go`
@@ -316,7 +333,7 @@ Write the message to `PR_MESSAGE.md` (ignored), in Conventional Commits form,
 and validate it:
 
 ```bash
-cat PR_MESSAGE.md | npx commitlint
+cat PR_MESSAGE.md | mise exec -- commitlint
 ```
 
 ```text
@@ -327,8 +344,11 @@ Implements openspec/changes/archive/<date>-<slug>/.
 Closes #N
 ```
 
-- **`Closes #N` is how the issue closes**, when the commit reaches `main`.
-  Never run `gh issue close`.
+- **`Closes #N` is how the issue closes**, when the pull request merges.
+  Never run `gh issue close`. Use `Refs #N` when the issue should stay open.
+- Release Please builds the changelog and version from these subjects, so the
+  type matters: `feat` and `fix` appear in the release, `chore` and `test` do
+  not. The pull request is squash-merged, so its title is the commit.
 - **Never start a body line with `word:`.** Commitlint v21 parses it as a
   footer.
 - Use `feat!:` or a `BREAKING CHANGE` footer for anything breaking.
@@ -339,15 +359,24 @@ Closes #N
 > The global `~/.claude/CLAUDE.md` forbids them and overrides that
 > instruction.
 
-## Phase 6 — Push
+## Phase 6 — Push and open the pull request
 
 ```bash
-git push origin main
+git push -u origin issue-"$N"
+gh pr create --base main --head issue-"$N" \
+  --title "$(head -1 PR_MESSAGE.md)" --body "$(tail -n +3 PR_MESSAGE.md)"
 ```
 
-Pushing is outward-facing; it needs the same explicit approval as the commit.
-Confirm with `gh issue view "$N" --json state` that `Closes #N` closed the
-issue.
+Pushing and opening a pull request are outward-facing; they need the same
+explicit approval as the commit. Then watch CI with `gh pr checks <number>
+--watch`. Report a failure with its log rather than merging around it. **Do not
+merge the pull request**; that, and any release it triggers, is the user's
+call. Once it merges, confirm with `gh issue view "$N" --json state` that
+`Closes #N` closed the issue, and remove the worktree and branch:
+
+```bash
+git worktree remove ../gojev-"$N" && git branch -D issue-"$N"
+```
 
 ## Phase 7 — Release the claim
 
@@ -359,12 +388,15 @@ gh issue edit "$N" --remove-label "processing:roadmap"
   the label.
 - If you are stopping for a user decision (including the `openspec-propose`
   boundary), **leave the label on**: you still own the issue. Say so.
+- Once the pull request is open, release the claim: the open pull request now
+  marks the issue as taken (see 1b).
 
 ## Phase 8 — Report and stop
 
 State: which issue was chosen and why, the route taken, the OpenSpec change
-if any, gate results, the commit, whether the issue closed, and whether the
-claim is released or held. Then stop. Do not pick another issue.
+if any, gate results, the pull request and its CI result, whether the issue
+will close on merge, and whether the claim is released or held. Then stop.
+Do not pick another issue.
 
 ## Standing facts about this repo
 
