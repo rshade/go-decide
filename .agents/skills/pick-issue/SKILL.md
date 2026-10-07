@@ -1,6 +1,6 @@
 ---
 name: pick-issue
-description: Choose and claim one go-decide roadmap issue, route it through OpenSpec or straight to code, commit it to main, and release the claim. Use when the user invokes pick-issue or asks to pick up a roadmap issue, optionally with an issue number.
+description: Choose and claim one go-decide roadmap issue, route it through OpenSpec or straight to code, land it as a pull request, and release the claim. Use when the user invokes pick-issue or asks to pick up a roadmap issue, optionally with an issue number.
 ---
 
 # Pick a Roadmap Issue

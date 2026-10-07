@@ -27,7 +27,8 @@ go test ./...
 go test ./decision -run TestChooseTurnsConfidence -v   # single test
 go test ./internal/cli -run Golden -update   # rewrite golden files
 golangci-lint run ./...
-npx markdownlint-cli2 "**/*.md"   # .markdownlint.yaml disables MD013 for tables
+# .markdownlint.yaml disables MD013 for tables
+mise exec -- markdownlint-cli2 "**/*.md"
 mise exec -- openspec ...         # OpenSpec is pinned in mise.toml
 ```
 
@@ -146,4 +147,6 @@ responses and is gitignored.
 - `/pick-issue` (`.claude/commands/pick-issue.md`, with a Codex wrapper in
   `.agents/skills/pick-issue/`) claims one `roadmap/current` issue through a
   `processing:roadmap` label and routes it through OpenSpec or straight to
-  code. Its Phases 3 and 6 assume commits go to `main`; update them at v0.1.0.
+  code. Since v0.1.0 every change lands as a pull request from a worktree
+  (`git worktree add ../gojev-<N> -b issue-<N> origin/main`), never as a
+  commit on `main`. CI must pass, and merging is the user's call.
