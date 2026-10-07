@@ -17,10 +17,10 @@ restore it). A task is not done without a break check.
 
 ## Release and tag rules (decided before the first tag)
 
-There is no release tooling yet: no `.github/`, no tags, no milestones, no
-`CHANGELOG.md`. Take the pattern from `rshade/ax-go` (release-please, Go
-release type, `CHANGELOG.md` owned by release-please) and from the lessons
-the finfocus plugin family learned on its first releases:
+The release files are copied from `rshade/finfocus-plugin-azure-public`, a
+setup that has proven solid, and adapted (JD-4.3, JD-4.4). There are still no
+tags, milestones or `CHANGELOG.md`. The rules, including the lessons the
+finfocus plugin family learned on its first releases:
 
 1. `release-please-config.json` uses `"release-type": "go"`,
    `"include-component-in-tag": false` (otherwise tags gain a component
@@ -32,7 +32,7 @@ the finfocus plugin family learned on its first releases:
    true (decided 2026-10-06): before 1.0 a `feat:` bumps the patch, so
    releases stay on 0.1.x. The operator bumps minors by hand, with a
    `Release-As: 0.2.0` footer on a commit or an edit to the release PR.
-   This differs from `rshade/ax-go`, which uses false.
+   This differs from `rshade/ax-go` and azure-public, which use false.
 4. Never hand-edit `CHANGELOG.md`. It is generated, and it fails
    markdownlint, so it goes in the markdownlint ignore list.
 5. Wrap commit bodies at 72 columns. Never start a body line with `word:`,
@@ -64,7 +64,7 @@ are Tier B.
 | --- | --- | --- |
 | Done | #1, #2, #3, #4, #5, #10, #11 | JD-0.x |
 | A, v0.1.0 | #12, #13, #16, #17, #18, #19, #20 | JD-1.x to JD-4.x |
-| B, after v0.1.0 | #6, #7, #8, #9, plus Clef provider support if the spike says go | JD-5.x |
+| B, after v0.1.0 | #6, #7, #8, #9, #21, #22, plus Clef provider support if the spike says go | JD-5.x |
 
 ### What the research found that this plan did not know (2026-10-06)
 
@@ -315,7 +315,8 @@ prefix so it never reads as the `decide` skill.
 
 **ID:** JD-3.3
 **Description:** Change the module path to `github.com/rshade/go-decide` in
-`go.mod` and every import, move `cmd/jev-decide/` to `cmd/go-decide/`,
+`go.mod` and every import, move `cmd/jev-decide/` to `cmd/go-decide/` (and
+`main` in `.goreleaser.yaml` with it),
 change the cobra root `Use`, and update docs, README, CLAUDE.md, CONTEXT.md
 ("No name collision" now names `go-decide`), ROADMAP.md, `/pick-issue`
 and its Codex wrapper. The GitHub repo is already `rshade/go-decide`; point
@@ -342,7 +343,8 @@ depends on #16, #17, #19 and the #18 verdict.*
 
 ### JD-4.1: Pin the toolchain in mise
 
-**Status:** TODO
+**Status:** PARTIAL, Go 1.27.1 and GoReleaser 2.18.2 are pinned for the
+release workflow; golangci-lint is still unpinned.
 
 **ID:** JD-4.1
 **Description:** Pin Go 1.27.1 and golangci-lint in `mise.toml` beside
@@ -365,7 +367,10 @@ gofmt violation on a branch and CI fails.
 
 ### JD-4.3: release-please
 
-**Status:** TODO
+**Status:** DONE (uncommitted), `go test ./internal/release` passes; break
+check: `include-component-in-tag: true` fails `TestReleasePleaseConfig`, then
+restored. Config and workflow copied from azure-public, actions pinned to
+commit SHAs.
 
 **ID:** JD-4.3
 **Description:** Add `release-please-config.json`,
@@ -376,7 +381,10 @@ wrong.
 
 ### JD-4.4: GoReleaser
 
-**Status:** TODO
+**Status:** DONE (uncommitted), `goreleaser check` passes and the snapshot
+build writes six archives and `checksums.txt`; the binary reports
+`0.1.0-SNAPSHOT-<sha>` because `main.version` is now injected (before, it
+would have been `unknown`). `actionlint` is clean.
 
 **ID:** JD-4.4
 **Description:** `.goreleaser.yaml` for the CLI binary, with version
@@ -456,6 +464,22 @@ Goes through OpenSpec (it changes the client API and a Hard No).
 
 ---
 
+### JD-5.6: Serve the commands as MCP tools
+
+**Related Issues:** [#21](https://github.com/rshade/go-decide/issues/21). Mount
+`ax-go`'s `mcp.NewCommand` in `newRoot`. Uncertain and escalate must come back
+as results, not errors; decide whether `eval` is excluded (it fans out into
+paid calls). `mcp-server` appears in `__schema`, so share #19's `SchemaVersion`
+3 bump if it lands before v0.1.0. Goes through OpenSpec.
+
+### JD-5.7: Ship the decide skill in this repository
+
+**Related Issues:** [#22](https://github.com/rshade/go-decide/issues/22).
+First decide the source of truth: move it here from `rshade/agent-skills`
+(recommended), or vendor a copy. Ships unchanged
+in `skills/decide/`; the pre-screen step is #7. CONTEXT.md's "no debate
+protocol" Hard No is reworded on purpose: no debate logic in Go.
+
 ## Issue Index (all ROADMAP issues)
 
 | # | Title | State | Labels | Disposition | Task |
@@ -477,7 +501,9 @@ Goes through OpenSpec (it changes the client API and a Hard No).
 | [#17](https://github.com/rshade/go-decide/issues/17) | make markdownlint clean across the repo | open | documentation, effort/small, roadmap/current | Tier A | JD-1.2 |
 | [#18](https://github.com/rshade/go-decide/issues/18) | spike: is Clef a drop-in System One provider? | open | spike, timebox/1d, roadmap/current | Tier A; gates the release | JD-3.1 |
 | [#19](https://github.com/rshade/go-decide/issues/19) | rename the module, binary and repo to go-decide | open | enhancement, effort/medium, roadmap/current | Tier A; repo already renamed | JD-3.2 (decided), JD-3.3 |
-| [#20](https://github.com/rshade/go-decide/issues/20) | CI and release pipeline for v0.1.0 | open | enhancement, effort/large, roadmap/current | Tier A | JD-4.1 to JD-4.6 |
+| [#20](https://github.com/rshade/go-decide/issues/20) | CI and release pipeline for v0.1.0 | open | enhancement, effort/large, roadmap/current | Tier A; release config done | JD-4.1 to JD-4.6 |
+| [#21](https://github.com/rshade/go-decide/issues/21) | serve the commands as MCP tools with ax-go's mcp-server | open | enhancement, effort/medium, roadmap/next | Tier B | JD-5.6 |
+| [#22](https://github.com/rshade/go-decide/issues/22) | ship the decide skill in this repository | open | enhancement, effort/small, roadmap/next | Tier B | JD-5.7 |
 
 ---
 
