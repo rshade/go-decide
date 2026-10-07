@@ -37,6 +37,9 @@ func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if err := b.checkInstructions(ctx, spec.Instructions); err != nil {
+				return err
+			}
 			question, err := spec.Question()
 			if err != nil {
 				return failure(ctx, err)

@@ -38,6 +38,9 @@ func newEvalCommand(env Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if err := b.checkInstructions(ctx, in.instructions); err != nil {
+				return err
+			}
 			items, err := loadEvalSet(ctx, decisionsPath, truthPath, in.instructions)
 			if err != nil {
 				return err

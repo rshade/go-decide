@@ -54,7 +54,7 @@ Recorded against the live API on 2026-10-06:
 
 | Request | Status | Cloudflare code and message |
 | --- | --- | --- |
-| Missing `model`, `state` or `questions` | 400 | 5006, `AiError: Bad input: Error: required properties at '/' are 'model,state,questions'` |
+| Missing `model`, `state` or `questions` (what an absent `instructions` triggers; the CLI now rejects it first) | 400 | 5006, `AiError: Bad input: Error: required properties at '/' are 'model,state,questions'` |
 | Invalid token | 401 | 10000, `Authentication error` |
 | Valid token, account the token cannot use | 401 | 10000, `Authentication error` |
 

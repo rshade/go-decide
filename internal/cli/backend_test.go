@@ -105,6 +105,48 @@ func TestUnknownBackendFailsBeforeAnyRequest(t *testing.T) {
 	}
 }
 
+func TestClefNeedsInstructionsBeforeAnyRequest(t *testing.T) {
+	noInstructions := func(args []string) []string {
+		var out []string
+		for i := 0; i < len(args); i++ {
+			if args[i] == "--instructions" {
+				i++
+				continue
+			}
+			out = append(out, args[i])
+		}
+		return out
+	}
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{"ask", with(noInstructions(askFlags), "--backend", "clef")},
+		{"score", with(noInstructions(scoreFlags), "--backend", "clef")},
+		{"ask dry run", with(noInstructions(askFlags), "--backend", "clef", "--dry-run")},
+		{"eval", []string{"eval", "--decisions", "../../testdata/decisions.json", "--truth", "../../testdata/decisions_truth.json", "--backend", "clef", "--instructions", ""}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := executeBackend(t, tt.args, http.StatusOK, "", nil)
+			if r.code != 2 || r.hits != 0 || r.stdout != "" {
+				t.Fatalf("exit %d hits %d stdout %q, want exit 2, no request and no result\nstderr: %s", r.code, r.hits, r.stdout, r.stderr)
+			}
+			if !strings.Contains(r.stderr, "validation_error") || !strings.Contains(r.stderr, `"field":"Instructions"`) {
+				t.Errorf("stderr = %s, want a validation error naming Instructions", r.stderr)
+			}
+		})
+	}
+}
+
+func TestJevAcceptsMissingInstructions(t *testing.T) {
+	args := []string{"ask", "--state", "all checks passed", "--option", "ship=release it", "--option", "hold=wait"}
+	r := executeBackend(t, args, http.StatusOK, choiceAnswer("ship", 0.95), nil)
+	if r.code != 0 || r.hits != 1 {
+		t.Fatalf("exit %d hits %d\nstderr: %s", r.code, r.hits, r.stderr)
+	}
+}
+
 func TestMissingClefCredentialsNeverFallBackToJev(t *testing.T) {
 	r := executeBackend(t, with(askFlags, "--backend", "clef"), http.StatusOK, choiceAnswer("ship", 0.95), func(t *testing.T) {
 		t.Setenv("CLOUDFLARE_AUTH_TOKEN", "")

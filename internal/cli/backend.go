@@ -21,10 +21,11 @@ const (
 // backend is one System One model the commands can ask. A run uses exactly
 // one: its credentials, its error codes and its default thresholds.
 type backend struct {
-	name       string
-	thresholds decision.Thresholds
-	classify   func(context.Context, error) error
-	newClient  func(env Env, cacheDir string) (*jev.Client, error)
+	name                 string
+	thresholds           decision.Thresholds
+	requiresInstructions bool
+	classify             func(context.Context, error) error
+	newClient            func(env Env, cacheDir string) (*jev.Client, error)
 }
 
 // backends lists every backend, in the order the flag help names them. Both
@@ -43,9 +44,10 @@ var backends = []backend{
 		},
 	},
 	{
-		name:       backendClef,
-		thresholds: decision.DefaultThresholds(),
-		classify:   clefclient.Classify,
+		name:                 backendClef,
+		thresholds:           decision.DefaultThresholds(),
+		requiresInstructions: true,
+		classify:             clefclient.Classify,
 		newClient: func(env Env, cacheDir string) (*jev.Client, error) {
 			var opts []clefclient.Option
 			if cacheDir != "" {
@@ -82,6 +84,17 @@ func (f *backendFlag) resolve(ctx context.Context) (backend, error) {
 		}
 	}
 	return backend{}, newValidationError(ctx, fmt.Sprintf("--backend %q: must be one of %s", f.name, backendNames()), "backend")
+}
+
+// checkInstructions fails a question with no instructions when the backend
+// rejects one, so the run stops before any request and on a dry run.
+func (b backend) checkInstructions(ctx context.Context, instructions string) error {
+	if b.requiresInstructions && instructions == "" {
+		return newValidationError(ctx,
+			fmt.Sprintf("--backend %s needs instructions: pass --instructions or set \"instructions\" in the spec", b.name),
+			"Instructions")
+	}
+	return nil
 }
 
 // client builds the backend's client and classifies a construction failure

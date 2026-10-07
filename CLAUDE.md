@@ -92,8 +92,11 @@ fails if any of them pull in `ax`'s OpenTelemetry/gRPC dependencies.
 
 `ask`, `score` and `eval` take `--backend jev|clef` (default `jev`). A run
 uses one backend and its credentials only, never falling back to the other.
-`decision.WithClassifier` makes `Choose` and `Rate` classify failures with
-the backend's `Classify` (default `jevclient.Classify`); the CLI passes it.
+clef rejects a question with empty instructions (a 400, code 5006) where Jev
+accepts it, so `backend.requiresInstructions` makes the CLI fail it as exit 2
+before any request, on a dry run too. `decision.WithClassifier` makes `Choose`
+and `Rate` classify failures with the backend's `Classify` (default
+`jevclient.Classify`); the CLI passes it.
 `Env.NewClefClient` is the injectable constructor for clef.
 
 ### Output schema versioning

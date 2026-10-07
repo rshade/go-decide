@@ -32,6 +32,12 @@ model through Workers AI, with `CLOUDFLARE_AUTH_TOKEN` and
 `CLOUDFLARE_ACCOUNT_ID`; `CLOUDFLARE_BASE_URL` and `CLOUDFLARE_LOG_LEVEL` are
 optional. Any other value exits 2 and lists the allowed ones.
 
+clef rejects a question that has no instructions, so `ask` and `score` with
+`--backend clef` and no `--instructions` (or spec `instructions`) exit 2 with a
+validation error naming `Instructions`, before any request and on a
+`--dry-run`. `eval` has a default instruction, but an empty `--instructions ""`
+fails the same way. Jev accepts a question without instructions.
+
 A run uses one backend and only that backend's credentials. Missing clef
 credentials fail the run; the command never falls back to Jev, and a
 `--dry-run` needs neither. The defaults for `--floor` and `--confident` are kept

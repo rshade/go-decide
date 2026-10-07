@@ -8,8 +8,8 @@ backend.
 outcome. The exit code tells your script what to do next: act, ask a person, or
 escalate. It gates and labels decisions. It never approves them.
 
-The project is in early development (v0.1.0). See [CONTEXT.md](CONTEXT.md) for
-boundaries and [ROADMAP.md](ROADMAP.md) for plans.
+The project is in early development and has no tagged release yet. See
+[CONTEXT.md](CONTEXT.md) for boundaries and [ROADMAP.md](ROADMAP.md) for plans.
 
 ## Install
 
@@ -17,9 +17,11 @@ boundaries and [ROADMAP.md](ROADMAP.md) for plans.
 go install github.com/rshade/go-decide/cmd/go-decide@latest
 ```
 
-Or download an archive from the GitHub releases page. Archives cover linux,
-darwin and windows on amd64 and arm64, with a `checksums.txt`. There is no
-Docker image, Homebrew tap or deb/rpm package yet.
+Until v0.1.0 is tagged, this builds the latest commit and `go-decide --version`
+prints a pseudo-version. Release archives for linux, darwin and windows on
+amd64 and arm64, with a `checksums.txt`, will appear on the GitHub releases
+page once a release is published. There is no Docker image, Homebrew tap or
+deb/rpm package yet.
 
 ## Set your API key
 
@@ -33,7 +35,9 @@ The key is read only from the environment, never from a flag. Keep it out of
 version control. A `.env` file is fine as long as it is ignored.
 
 To use clef instead, pass `--backend clef` and export a Cloudflare API token
-with Workers AI access and your 32-character account ID:
+with Workers AI access and your 32-character account ID. clef also needs
+`--instructions` (or `"instructions"` in a spec): without it, `ask` and `score`
+exit 2 before sending anything.
 
 ```sh
 export CLOUDFLARE_AUTH_TOKEN="your-token"
@@ -65,8 +69,8 @@ illustrative; yours will differ:
     "backend": "jev",
     "outcome": "decided",
     "choice": "ship",
-    "confidence": 0.95,
-    "probabilities": {"hold": 0.05, "ship": 0.95},
+    "confidence": 0.93,
+    "probabilities": {"hold": 0.03, "ship": 0.97},
     "thresholds": {"floor": 0.5, "confident": 0.9}
   },
   "meta": {"trace_id": "...", "span_id": "...", "idempotency_key": "..."}
@@ -81,6 +85,11 @@ the thresholds:
 | `decided` | at or above `0.9` | 0 | The answer is in `choice`. |
 | `uncertain` | from `0.5` up to `0.9` | 10 | Ask a person. `leading` names the front-runner. |
 | `escalate` | below `0.5` | 11 | Take it to the full `decide` debate. |
+
+`confidence` comes from the model and is reported apart from `probabilities`,
+so it need not equal the top probability. Run the example a few times: a
+question this clear-cut can still land on `uncertain` (see
+[Know the limits](#know-the-limits)).
 
 Only a `decided` outcome has a `choice`. `uncertain` and `escalate` are not
 failures: the full result is still printed.
@@ -129,7 +138,7 @@ empty. Exit codes 1 to 4 mean failure:
 
 | Code | Meaning |
 | --- | --- |
-| 1 | Internal failure, or a response that broke the contract. |
+| 1 | Internal failure, a response that broke the contract, or a missing API key. |
 | 2 | Invalid input. The error names the field. |
 | 3 | Network failure or timeout. |
 | 4 | Authentication failure. |
@@ -141,6 +150,7 @@ prints a `level` instead of a `choice`:
 
 ```sh
 go-decide score --state "checkout fails" \
+  --instructions "How severe is this bug?" \
   --level minor="cosmetic" --level major="cannot buy"
 ```
 
