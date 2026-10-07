@@ -1,9 +1,15 @@
 # go-decide
 
-Typed decision support on a System One model. Jev, from TypeSafe AI, is the
-default, and Cloudflare's clef is an opt-in second backend. The project is in
-early development; see [CONTEXT.md](CONTEXT.md) for boundaries and
-[ROADMAP.md](ROADMAP.md) for plans.
+Ask a System One model whether a decision is clear enough to act on. Jev, from
+TypeSafe AI, is the default model, and Cloudflare's clef is an opt-in second
+backend.
+
+`go-decide` puts a choice (or an ordered rubric) to the model and prints a JSON
+outcome. The exit code tells your script what to do next: act, ask a person, or
+escalate. It gates and labels decisions. It never approves them.
+
+The project is in early development (v0.1.0). See [CONTEXT.md](CONTEXT.md) for
+boundaries and [ROADMAP.md](ROADMAP.md) for plans.
 
 ## Install
 
@@ -11,155 +17,173 @@ early development; see [CONTEXT.md](CONTEXT.md) for boundaries and
 go install github.com/rshade/go-decide/cmd/go-decide@latest
 ```
 
-Each GitHub release also has archives for linux, darwin and windows, on
-amd64 and arm64, plus `checksums.txt`. v0.1.0 has no Docker image, Homebrew
-tap or deb/rpm package.
+Or download an archive from the GitHub releases page. Archives cover linux,
+darwin and windows on amd64 and arm64, with a `checksums.txt`. There is no
+Docker image, Homebrew tap or deb/rpm package yet.
 
-## Jev client
+## Set your API key
 
-`jevclient.NewClient` returns a configured `kataras/jev` client. It is the
-supported way to build one: it applies the credential, endpoint and retry
-policies below, and calling `jev.New` directly bypasses them.
-
-| Variable | Purpose |
-| --- | --- |
-| `TYPESAFE_API_KEY` | Bearer token from `console.typesafe.ai/keys`. Required. Read only from the environment. |
-| `TYPESAFE_BASE_URL` | Optional endpoint. Must be `https`, or `http` to a loopback IP address. |
-| `TYPESAFE_LOG_LEVEL` | Optional: `debug`, `info`, `warn`, `error` or `off` (default off). Logs go to stderr. The key is replaced in every attribute. An invalid level makes `NewClient` return `jev.ErrConfig`. |
-
-Requests go to `https://api.typesafe.ai` by default. Redirects are never
-followed. Only 429 and 529 are retried (at most twice, within 30 seconds,
-honoring `Retry-After` up to 10 seconds);
-timeouts and 5xx responses are reported, not retried. A response that omits a
-requested answer or reports a probability outside 0 to 1 is an error, never a
-zero value.
-
-```go
-client, err := jevclient.NewClient()
-if err != nil {
-    log.Fatal(err)
-}
-
-resp, err := client.SystemOne(ctx, jev.Request{
-    State: "I was charged twice. Please help.",
-    Questions: jev.Questions{
-        "billing": jev.Noul{Instructions: "Is this message about billing?"},
-    },
-})
-```
-
-Keep the token in the environment or an ignored `.env`. Never commit it.
-
-## clef client
-
-`clefclient.NewClient` returns the same `*jev.Client` type, pointed at
-Cloudflare Workers AI's `clef` model, with the same guarantees: credentials
-only from the environment, an https-or-loopback endpoint, no redirects,
-bounded retries (429 only) and answer validation. Failures are classified by
-`clefclient.Classify` into `clef.*` codes (see
-[docs/clef-errors.md](docs/clef-errors.md)). Pass it to `decision.Choose` with
-`decision.WithClassifier(clefclient.Classify)` so errors carry clef's codes.
-
-| Variable | Purpose |
-| --- | --- |
-| `CLOUDFLARE_AUTH_TOKEN` | Cloudflare API token with Workers AI access. Required. Read only from the environment. |
-| `CLOUDFLARE_ACCOUNT_ID` | The 32-character account ID. Required. |
-| `CLOUDFLARE_BASE_URL` | Optional endpoint. Must be `https`, or `http` to a loopback IP address. |
-| `CLOUDFLARE_LOG_LEVEL` | Optional: `debug`, `info`, `warn`, `error` or `off` (default off). The token is replaced in every attribute. |
-
-How clef compares with Jev on the same decisions is in
-[docs/clef-2026-10-06.md](docs/clef-2026-10-06.md).
-
-## Command line
-
-`go-decide` asks a System One model, Jev by default or clef with
-`--backend clef`. `ask` and `score` put a
-choice or an ordered rubric to it and print a versioned JSON outcome. The
-exit code says whether the answer can be acted on: 0 decided, 10 uncertain,
-11 escalate, and 1 to 4 for failures.
+Create a key at `console.typesafe.ai/keys` and export it:
 
 ```sh
-go-decide ask --state "All 412 tests passed." --instructions "Ship it?" \
+export TYPESAFE_API_KEY="your-key"
+```
+
+The key is read only from the environment, never from a flag. Keep it out of
+version control. A `.env` file is fine as long as it is ignored.
+
+To use clef instead, pass `--backend clef` and export a Cloudflare API token
+with Workers AI access and your 32-character account ID:
+
+```sh
+export CLOUDFLARE_AUTH_TOKEN="your-token"
+export CLOUDFLARE_ACCOUNT_ID="your-account-id"
+```
+
+A run uses one backend and only that backend's credentials. It never falls
+back to the other one.
+
+## Make your first decision
+
+Put a question, the facts, and the options to the model:
+
+```sh
+go-decide ask \
+  --state "All 412 tests passed and the security scan is clean." \
+  --instructions "Is this build ready to release?" \
+  --option ship="safe to release" \
+  --option hold="needs more work"
+```
+
+You get one JSON envelope on standard output. The values below are
+illustrative; yours will differ:
+
+```json
+{
+  "data": {
+    "schema_version": 4,
+    "backend": "jev",
+    "outcome": "decided",
+    "choice": "ship",
+    "confidence": 0.95,
+    "probabilities": {"hold": 0.05, "ship": 0.95},
+    "thresholds": {"floor": 0.5, "confident": 0.9}
+  },
+  "meta": {"trace_id": "...", "span_id": "...", "idempotency_key": "..."}
+}
+```
+
+The `outcome` is one of three values, chosen by comparing `confidence` with
+the thresholds:
+
+| Outcome | Confidence | Exit code | What to do |
+| --- | --- | --- | --- |
+| `decided` | at or above `0.9` | 0 | The answer is in `choice`. |
+| `uncertain` | from `0.5` up to `0.9` | 10 | Ask a person. `leading` names the front-runner. |
+| `escalate` | below `0.5` | 11 | Take it to the full `decide` debate. |
+
+Only a `decided` outcome has a `choice`. `uncertain` and `escalate` are not
+failures: the full result is still printed.
+
+To check a question without spending anything, add `--dry-run`. It validates
+your input and stops before any request, so it needs no key:
+
+```sh
+go-decide ask --dry-run --state "All 412 tests passed." \
+  --instructions "Ship it?" \
   --option ship="safe to release" --option hold="wait"
 ```
 
-`go-decide eval` runs a labelled decision set through the chosen backend and
-reports how well the confidence separates clear decisions from contested ones:
-accuracy, contested AUC, Brier score, and precision and recall per threshold.
-Use it to check the thresholds; it measures and never approves.
+## Use it in a script
+
+Branch on the exit code. This example uses `jq` to read the answer:
+
+```sh
+out=$(go-decide ask --spec decision.json)
+case $? in
+  0)  echo "go ahead with $(jq -r .data.choice <<<"$out")" ;;
+  10) echo "ask a person, leaning $(jq -r .data.leading <<<"$out")" ;;
+  11) echo "escalate to the full decide debate" ;;
+  *)  echo "go-decide failed" >&2; exit 1 ;;
+esac
+```
+
+`decision.json` is a decision spec, one JSON document:
+
+```json
+{
+  "state": "The build passed all 412 tests.",
+  "instructions": "Is this build ready to release?",
+  "options": [
+    {"name": "ship", "description": "Release it now."},
+    {"name": "hold", "description": "Needs more work."}
+  ]
+}
+```
+
+Pass `--spec -` to read it from standard input. Flags can fill in a spec, but
+giving the same field both ways is an error.
+
+A failure prints an error envelope on standard error and leaves standard output
+empty. Exit codes 1 to 4 mean failure:
+
+| Code | Meaning |
+| --- | --- |
+| 1 | Internal failure, or a response that broke the contract. |
+| 2 | Invalid input. The error names the field. |
+| 3 | Network failure or timeout. |
+| 4 | Authentication failure. |
+
+## Other commands
+
+`score` rates something against an ordered rubric, lowest level first, and
+prints a `level` instead of a `choice`:
+
+```sh
+go-decide score --state "checkout fails" \
+  --level minor="cosmetic" --level major="cannot buy"
+```
+
+`eval` runs a labelled set of decisions through the chosen backend and reports
+how well confidence separates clear decisions from contested ones. Use it to
+check the thresholds:
 
 ```sh
 go-decide eval --decisions testdata/decisions.json \
   --truth testdata/decisions_truth.json --cache-dir .eval-cache
 ```
 
-Input is a JSON decision spec (`--spec file` or `-`), flags, or both. See
-[docs/jev-decide-cli.md](docs/jev-decide-cli.md) for the spec format, output
-fields, exit codes and the versioning policy.
+All three commands accept `--backend` and `--dry-run`.
+`go-decide <command> --help` lists every flag.
 
-`schema_version` pins the JSON shape of each command's output. Shapes are
-pinned per version by golden files. The tool name and the threshold values
-are not part of that promise. The default thresholds, a floor of 0.5 and a
-confident level of 0.9, are placeholders until issue #6.
+## Know the limits
 
-## Probes
+- **Decided does not mean approved.** The model ranks options well but its
+  confidence is not calibrated. Treat `decided` as "clear enough to skip a
+  second look", not as sign-off.
+- **The thresholds are placeholders.** The floor of 0.5 and confident level of
+  0.9 stay provisional until issue #6 tunes them on real decisions. A clear-cut
+  question can land at `uncertain` under these defaults. Set `--floor` and
+  `--confident` to tune them, and use `eval` to check your choice.
+- **Backends differ.** On the 40-decision probe, clef separated contested
+  decisions less sharply than Jev. Do not carry thresholds tuned for one
+  backend over to the other.
+- **Answers vary.** Identical calls can return slightly different
+  `confidence` and `probabilities`.
+- **Calls cost money.** Validate with `--dry-run` first. `eval` can cache
+  responses with `--cache-dir` so a rerun sends nothing.
 
-The root `probe_*_test.go` and `jev_*_test.go` files are built only with
-`-tags probe`. They call the live API and spend money. `go test ./...` does
-not run them. Run one deliberately:
+## Learn more
 
-```sh
-go test -tags probe -run TestJevRecommendations -count=1
-```
+- [docs/jev-decide-cli.md](docs/jev-decide-cli.md): the full CLI reference,
+  covering backends, the spec format, every output field, exit codes and output
+  versioning.
+- [docs/jev-errors.md](docs/jev-errors.md) and
+  [docs/clef-errors.md](docs/clef-errors.md): the error codes behind exit codes
+  1 to 4.
+- [docs/clef-2026-10-06.md](docs/clef-2026-10-06.md): how clef compares with
+  Jev on the same decisions.
+- [CONTEXT.md](CONTEXT.md): what this project will and won't do.
+- [ROADMAP.md](ROADMAP.md): planned work, mapped to issues.
 
-## Decisions
-
-`decision.Choose` asks Jev one choice question over a typed set of options and
-returns a sealed result: `Decided`, `Uncertain` or `Escalate`. Which one depends
-on the answer's confidence and two thresholds.
-
-| Result | Confidence | Meant for |
-| --- | --- | --- |
-| `Decided` | at or above the confident level | Acting, unless you want a second opinion |
-| `Uncertain` | from the floor up to the confident level | A person |
-| `Escalate` | below the floor | The full `decide` debate |
-
-Only `Decided` has a `Choice()`. The other two expose `Leading()`, which is
-context and not a decision. `Match` needs a handler for each case, so a missing
-case does not compile. Failures are returned as errors, never as results.
-
-Before any request is sent, `Choose` validates the question and returns an
-error that names the field (`*decision.FieldError`, matched with `errors.As`):
-a nil or empty `State`, an estimated size over the API's 32k limit for state
-plus question, and more than 255 options are all rejected at no cost. Call
-`Question.Validate` to check a question without a client.
-
-`Decided` means clear enough to skip the debate, not approved: Jev's confidence
-is not calibrated.
-
-The default thresholds are a floor of 0.5 and a confident level of 0.9. Both are
-placeholders until issue #6 tunes them on real decisions. On one live call, a
-clear-cut "is this build ready to release?" question came back at 0.69, which
-these defaults call `Uncertain`, so expect to tune them.
-
-```go
-result, err := decision.Choose(ctx, client, decision.Question[Action]{
-    State:        "All 412 tests passed and the security scan is clean.",
-    Instructions: "Is this build ready to release?",
-    Options:      options,
-})
-if err != nil {
-    return err
-}
-next := decision.Match(result,
-    func(d decision.Decided[Action]) string {
-        return "go ahead with " + string(d.Choice())
-    },
-    func(u decision.Uncertain[Action]) string { return "ask a person" },
-    func(e decision.Escalate[Action]) string { return "run the decide debate" },
-)
-```
-
-Scores work the same way: `decision.Rate` takes ordered `Levels` and returns a
-sealed `ScoreResult` that `decision.MatchScore` consumes. Only `ScoreDecided` has
-a `Level()`.
+Using go-decide as a Go library is not documented here yet.
