@@ -381,9 +381,10 @@ func TestSchemaListsBothCommands(t *testing.T) {
 	r := execute(t, "", []string{"__schema"}, http.StatusOK, "")
 
 	var schema struct {
-		Tool    string `json:"tool"`
-		Version string `json:"version"`
-		Command struct {
+		SchemaVersion int    `json:"schema_version"`
+		Tool          string `json:"tool"`
+		Version       string `json:"version"`
+		Command       struct {
 			Commands []struct {
 				Use   string `json:"use"`
 				Long  string `json:"long"`
@@ -400,8 +401,9 @@ func TestSchemaListsBothCommands(t *testing.T) {
 	for _, c := range schema.Command.Commands {
 		found[c.Use] = strings.Contains(c.Long, fmt.Sprintf("schema_version: %d", SchemaVersion))
 	}
-	if r.code != 0 || schema.Tool != "go-decide" || schema.Version != goldenVersion || !found["ask"] || !found["score"] {
-		t.Fatalf("__schema = exit %d tool %q version %q commands %v; want both commands with the output version", r.code, schema.Tool, schema.Version, found)
+	if r.code != 0 || schema.SchemaVersion != SchemaVersion || schema.Tool != "go-decide" || schema.Version != goldenVersion || !found["ask"] || !found["score"] {
+		t.Fatalf("__schema = exit %d schema_version %d tool %q version %q commands %v; want schema_version %d and both commands",
+			r.code, schema.SchemaVersion, schema.Tool, schema.Version, found, SchemaVersion)
 	}
 	if r.hits != 0 {
 		t.Errorf("__schema made %d requests, want 0", r.hits)

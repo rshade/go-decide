@@ -150,6 +150,8 @@ error codes behind them. Codes 5 to 9 are left free.
 
 `schema_version` is 3. Version 2 added `eval`. Version 3 renamed the tool to
 `go-decide`; the `ask`, `score` and `eval` shapes are otherwise unchanged.
+`go-decide __schema` prints that integer as its top-level `schema_version`,
+with `tool` set to `go-decide`.
 `schema_version` pins those shapes, one golden file per version under
 `internal/cli/testdata/golden/`. The tool name and the threshold values are
 not part of that promise. A change to a shape fails the tests until
