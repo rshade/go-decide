@@ -1,0 +1,1 @@
+{"data":{"schema_version":4,"backend":"jev","dry_run":true,"kind":"score","names":["a","b","c"],"thresholds":{"floor":0.5,"confident":0.9}},"meta":{"trace_id":"<masked>","span_id":"<masked>","idempotency_key":"<masked>","dry_run":true}}

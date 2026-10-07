@@ -12,7 +12,6 @@ import (
 
 	"github.com/rshade/go-decide/decision"
 	"github.com/rshade/go-decide/eval"
-	"github.com/rshade/go-decide/jevclient"
 )
 
 func newEvalCommand(env Env) *cobra.Command {
@@ -31,7 +30,11 @@ func newEvalCommand(env Env) *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			thresholds, err := in.thresholds(cmd)
+			b, err := in.backend.resolve(ctx)
+			if err != nil {
+				return err
+			}
+			thresholds, err := in.thresholds(cmd, b)
 			if err != nil {
 				return err
 			}
@@ -40,18 +43,14 @@ func newEvalCommand(env Env) *cobra.Command {
 				return err
 			}
 			if contract.DryRunFromContext(ctx) {
-				return writeDryRun(cmd, evalDryRunOutput(items, thresholds))
+				return writeDryRun(cmd, evalDryRunOutput(b.name, items, thresholds))
 			}
 
-			var opts []jevclient.Option
-			if cacheDir != "" {
-				opts = append(opts, jevclient.WithResponseCache(cacheDir))
-			}
-			client, err := env.NewClient(opts...)
+			client, err := b.client(ctx, env, cacheDir)
 			if err != nil {
-				return jevclient.Classify(ctx, err)
+				return err
 			}
-			results, err := askAll(ctx, client, items, thresholds)
+			results, err := askAll(ctx, client, b, items, thresholds)
 			if err != nil {
 				return err
 			}
@@ -59,12 +58,13 @@ func newEvalCommand(env Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return ax.WriteJSON(cmd.OutOrStdout(), ax.NewEnvelope(ctx, evalOutput(items, results, report, thresholds)))
+			return ax.WriteJSON(cmd.OutOrStdout(), ax.NewEnvelope(ctx, evalOutput(b.name, items, results, report, thresholds)))
 		},
 	}
 	cmd.Flags().StringVar(&decisionsPath, "decisions", "", "the decision set, as a JSON file in the format of testdata/decisions.json")
 	cmd.Flags().StringVar(&truthPath, "truth", "", "the truth file, as a JSON file in the format of testdata/decisions_truth.json")
 	cmd.Flags().StringVar(&in.instructions, "instructions", defaultEvalInstructions, "what to decide, asked of every decision")
+	in.backend.register(cmd)
 	in.registerThresholds(cmd)
 	cmd.Flags().StringVar(&cacheDir, "cache-dir", "", "store successful responses here so a rerun of the same set is free")
 	ax.WithNonDeterministicFields[EvalOutput](cmd)
@@ -73,10 +73,10 @@ func newEvalCommand(env Env) *cobra.Command {
 
 // askAll asks every question in order and stops at the first failure, so no
 // partial report exists. Responses before the failure stay in the cache.
-func askAll(ctx context.Context, client *jev.Client, items []evalItem, th decision.Thresholds) ([]eval.Result, error) {
+func askAll(ctx context.Context, client *jev.Client, b backend, items []evalItem, th decision.Thresholds) ([]eval.Result, error) {
 	results := make([]eval.Result, 0, len(items))
 	for _, item := range items {
-		answer, err := decision.Choose(ctx, client, item.question, decision.WithThresholds(th))
+		answer, err := decision.Choose(ctx, client, item.question, b.decisionOptions(th)...)
 		if err != nil {
 			return nil, withDecision(ctx, item.id, failure(ctx, err))
 		}
@@ -104,8 +104,8 @@ func withDecision(ctx context.Context, id string, err error) error {
 	return err
 }
 
-func evalDryRunOutput(items []evalItem, th decision.Thresholds) EvalDryRunOutput {
-	out := EvalDryRunOutput{SchemaVersion: SchemaVersion, DryRun: true, Decisions: len(items), Thresholds: thresholdsOutput(th)}
+func evalDryRunOutput(backend string, items []evalItem, th decision.Thresholds) EvalDryRunOutput {
+	out := EvalDryRunOutput{SchemaVersion: SchemaVersion, Backend: backend, DryRun: true, Decisions: len(items), Thresholds: thresholdsOutput(th)}
 	for _, item := range items {
 		if item.class == eval.Dominant {
 			out.Dominant++
@@ -116,9 +116,10 @@ func evalDryRunOutput(items []evalItem, th decision.Thresholds) EvalDryRunOutput
 	return out
 }
 
-func evalOutput(items []evalItem, results []eval.Result, report eval.Report, th decision.Thresholds) EvalOutput {
+func evalOutput(backend string, items []evalItem, results []eval.Result, report eval.Report, th decision.Thresholds) EvalOutput {
 	out := EvalOutput{
 		SchemaVersion: SchemaVersion,
+		Backend:       backend,
 		Metrics: EvalMetricsOutput{
 			Accuracy:     metricOutput(report.Accuracy),
 			ContestedAUC: metricOutput(report.ContestedAUC),

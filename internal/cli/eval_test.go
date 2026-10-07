@@ -277,7 +277,7 @@ func TestEvalDryRunNeedsNoKeyAndSendsNothing(t *testing.T) {
 		t.Fatalf("exit %d, stderr %s", code, stderr.String())
 	}
 	out := decode[EvalDryRunOutput](t, run{stdout: stdout.String()})
-	want := EvalDryRunOutput{SchemaVersion: SchemaVersion, DryRun: true, Decisions: 2, Dominant: 1, Contested: 1, Thresholds: ThresholdsOutput{Floor: 0.5, Confident: 0.9}}
+	want := EvalDryRunOutput{SchemaVersion: SchemaVersion, Backend: "jev", DryRun: true, Decisions: 2, Dominant: 1, Contested: 1, Thresholds: ThresholdsOutput{Floor: 0.5, Confident: 0.9}}
 	if out != want {
 		t.Fatalf("dry run = %+v, want %+v", out, want)
 	}

@@ -11,6 +11,7 @@ import (
 	ax "github.com/rshade/ax-go"
 	"github.com/spf13/cobra"
 
+	"github.com/rshade/go-decide/clefclient"
 	"github.com/rshade/go-decide/jevclient"
 )
 
@@ -31,6 +32,8 @@ type Env struct {
 	Getenv    func(string) string
 	Version   string
 	NewClient func(...jevclient.Option) (*jev.Client, error)
+	// NewClefClient builds the client for --backend clef.
+	NewClefClient func(...clefclient.Option) (*jev.Client, error)
 }
 
 func (e Env) withDefaults() Env {
@@ -48,6 +51,9 @@ func (e Env) withDefaults() Env {
 	}
 	if e.NewClient == nil {
 		e.NewClient = jevclient.NewClient
+	}
+	if e.NewClefClient == nil {
+		e.NewClefClient = clefclient.NewClient
 	}
 	e.Version = ax.ResolveVersion(e.Version)
 	return e
@@ -80,10 +86,10 @@ func newRoot(env Env, outcome *outcomeKind) *cobra.Command {
 		Use:     "go-decide",
 		Version: env.Version,
 		Short:   "Ask a System One model a choice or score question and get a typed outcome",
-		Long: "go-decide asks a System One model, Jev by default: a choice (ask) or an ordered rubric (score).\n" +
+		Long: "go-decide asks a System One model, Jev by default or clef with --backend clef: a choice (ask) or an ordered rubric (score).\n" +
 			"The outcome is decided, uncertain or escalate, and only a decided outcome is one to act on.\n" +
 			"eval measures how well the confidence separates clear decisions from contested ones.\n" +
-			"The default thresholds (floor 0.5, confident 0.9) are placeholders until #6.\n" +
+			"The default thresholds (floor 0.5, confident 0.9, the same for each backend) are placeholders until #6.\n" +
 			outcomeExitCodes + ", 1 to 4 failures; eval exits 0 with a report.",
 	}
 	// Print only the release version, so --version matches the ldflags value.

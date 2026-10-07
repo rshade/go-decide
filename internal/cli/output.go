@@ -4,7 +4,7 @@ import "github.com/rshade/go-decide/decision"
 
 // SchemaVersion is the version of the JSON shape of every command's output.
 // Any change to a shape needs a new version and a new golden file.
-const SchemaVersion = 3
+const SchemaVersion = 4
 
 // ThresholdsOutput echoes the thresholds a run used.
 type ThresholdsOutput struct {
@@ -17,6 +17,7 @@ type ThresholdsOutput struct {
 // decided.
 type AskOutput struct {
 	SchemaVersion int                `json:"schema_version"`
+	Backend       string             `json:"backend"`
 	Outcome       string             `json:"outcome"`
 	Choice        string             `json:"choice,omitempty"`
 	Leading       string             `json:"leading,omitempty"`
@@ -29,6 +30,7 @@ type AskOutput struct {
 // Level; the other two carry Nearest.
 type ScoreOutput struct {
 	SchemaVersion int                `json:"schema_version"`
+	Backend       string             `json:"backend"`
 	Outcome       string             `json:"outcome"`
 	Level         string             `json:"level,omitempty"`
 	Nearest       string             `json:"nearest,omitempty"`
@@ -43,6 +45,7 @@ type ScoreOutput struct {
 // options of a choice or the levels of a score, in the order given.
 type DryRunOutput struct {
 	SchemaVersion int              `json:"schema_version"`
+	Backend       string           `json:"backend"`
 	DryRun        bool             `json:"dry_run"`
 	Kind          string           `json:"kind"`
 	Names         []string         `json:"names"`
@@ -54,6 +57,7 @@ type DryRunOutput struct {
 // null, never 0.
 type EvalOutput struct {
 	SchemaVersion int                `json:"schema_version"`
+	Backend       string             `json:"backend"`
 	Metrics       EvalMetricsOutput  `json:"metrics"      ax:"nondeterministic"`
 	Outcomes      EvalOutcomesOutput `json:"outcomes"     ax:"nondeterministic"`
 	Thresholds    ThresholdsOutput   `json:"thresholds"`
@@ -102,6 +106,7 @@ type EvalDecisionRow struct {
 // both files and the thresholds passed validation and nothing was asked.
 type EvalDryRunOutput struct {
 	SchemaVersion int              `json:"schema_version"`
+	Backend       string           `json:"backend"`
 	DryRun        bool             `json:"dry_run"`
 	Decisions     int              `json:"decisions"`
 	Dominant      int              `json:"dominant"`
@@ -122,10 +127,10 @@ func probabilitiesOutput(in map[string]decision.Probability) map[string]float64 
 }
 
 // dryRunOutput describes a validated question for --dry-run.
-func dryRunOutput(kind string, entries []decision.SpecEntry, th decision.Thresholds) DryRunOutput {
+func dryRunOutput(backend, kind string, entries []decision.SpecEntry, th decision.Thresholds) DryRunOutput {
 	names := make([]string, len(entries))
 	for i, entry := range entries {
 		names[i] = entry.Name
 	}
-	return DryRunOutput{SchemaVersion: SchemaVersion, DryRun: true, Kind: kind, Names: names, Thresholds: thresholdsOutput(th)}
+	return DryRunOutput{SchemaVersion: SchemaVersion, Backend: backend, DryRun: true, Kind: kind, Names: names, Thresholds: thresholdsOutput(th)}
 }

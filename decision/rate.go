@@ -7,8 +7,6 @@ import (
 	"strconv"
 
 	"github.com/kataras/jev"
-
-	"github.com/rshade/go-decide/jevclient"
 )
 
 const scoreQuestionName = "score"
@@ -39,10 +37,8 @@ func (q RateQuestion[T]) Validate() error {
 // an invalid question (see [RateQuestion.Validate]) and invalid thresholds are
 // reported before any request is sent, so they cost nothing.
 func Rate[T ~string](ctx context.Context, client *jev.Client, q RateQuestion[T], opts ...ChooseOption) (ScoreResult[T], error) {
-	cfg := chooseConfig{thresholds: DefaultThresholds()}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
+	cfg := defaultChooseConfig(opts)
+	ctx = context.WithValue(ctx, classifierKey{}, cfg.classify)
 	if client == nil {
 		return nil, ErrNilClient
 	}
@@ -64,7 +60,7 @@ func Rate[T ~string](ctx context.Context, client *jev.Client, q RateQuestion[T],
 		},
 	})
 	if err != nil {
-		return nil, jevclient.Classify(ctx, err)
+		return nil, cfg.classify(ctx, err)
 	}
 	answer, ok := resp.Score(scoreQuestionName)
 	if !ok {

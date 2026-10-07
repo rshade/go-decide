@@ -21,12 +21,14 @@ type inputFlags struct {
 	instructions string
 	floor        float64
 	confident    float64
+	backend      backendFlag
 }
 
 func (f *inputFlags) register(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.spec, "spec", "", specFlagUsage)
 	cmd.Flags().StringVar(&f.state, "state", "", "the content to decide on, as a string")
 	cmd.Flags().StringVar(&f.instructions, "instructions", "", "what to decide")
+	f.backend.register(cmd)
 	f.registerThresholds(cmd)
 }
 
@@ -73,9 +75,9 @@ func readSpec(cmd *cobra.Command, source string) (decision.Spec, error) {
 	return decision.ParseSpec(file)
 }
 
-// thresholds returns the defaults with any --floor or --confident applied.
-func (f *inputFlags) thresholds(cmd *cobra.Command) (decision.Thresholds, error) {
-	th := decision.DefaultThresholds()
+// thresholds returns the backend defaults with any --floor or --confident applied.
+func (f *inputFlags) thresholds(cmd *cobra.Command, b backend) (decision.Thresholds, error) {
+	th := b.thresholds
 	floor, confident := th.Floor().Float64(), th.Confident().Float64()
 	if cmd.Flags().Changed("floor") {
 		floor = f.floor

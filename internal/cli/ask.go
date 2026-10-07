@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/rshade/go-decide/decision"
-	"github.com/rshade/go-decide/jevclient"
 )
 
 func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
@@ -17,8 +16,8 @@ func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "ask",
-		Short: "Ask Jev to choose between options",
-		Long: "ask puts a choice question to Jev and prints the outcome as a JSON envelope.\n" +
+		Short: "Ask a System One model to choose between options",
+		Long: "ask puts a choice question to the --backend model (Jev by default) and prints the outcome as a JSON envelope.\n" +
 			"Only a decided outcome has a choice; the other two name a leading option only.\n" +
 			fmt.Sprintf("Output schema_version: %d. %s.", SchemaVersion, outcomeExitCodes),
 		Example: `  go-decide ask --spec decision.json
@@ -26,6 +25,10 @@ func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
+			b, err := in.backend.resolve(ctx)
+			if err != nil {
+				return err
+			}
 			entries, err := parseEntries(ctx, "option", options)
 			if err != nil {
 				return err
@@ -38,24 +41,24 @@ func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
 			if err != nil {
 				return failure(ctx, err)
 			}
-			thresholds, err := in.thresholds(cmd)
+			thresholds, err := in.thresholds(cmd, b)
 			if err != nil {
 				return err
 			}
 			if contract.DryRunFromContext(ctx) {
-				return writeDryRun(cmd, dryRunOutput("choice", spec.Options, thresholds))
+				return writeDryRun(cmd, dryRunOutput(b.name, "choice", spec.Options, thresholds))
 			}
-			client, err := env.NewClient()
+			client, err := b.client(ctx, env, "")
 			if err != nil {
-				return jevclient.Classify(ctx, err)
+				return err
 			}
 
-			result, err := decision.Choose(ctx, client, question, decision.WithThresholds(thresholds))
+			result, err := decision.Choose(ctx, client, question, b.decisionOptions(thresholds)...)
 			if err != nil {
 				return failure(ctx, err)
 			}
 
-			out, kind := askOutput(result, thresholds)
+			out, kind := askOutput(b.name, result, thresholds)
 			*outcome = kind
 			return ax.WriteJSON(cmd.OutOrStdout(), ax.NewEnvelope(ctx, out))
 		},
@@ -66,9 +69,10 @@ func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
 	return cmd
 }
 
-func askOutput(result decision.Result[string], thresholds decision.Thresholds) (AskOutput, outcomeKind) {
+func askOutput(backend string, result decision.Result[string], thresholds decision.Thresholds) (AskOutput, outcomeKind) {
 	out := AskOutput{
 		SchemaVersion: SchemaVersion,
+		Backend:       backend,
 		Confidence:    result.Confidence().Float64(),
 		Probabilities: probabilitiesOutput(result.Probabilities()),
 		Thresholds:    thresholdsOutput(thresholds),
