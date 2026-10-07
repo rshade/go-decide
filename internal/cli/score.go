@@ -10,7 +10,7 @@ import (
 	"github.com/rshade/go-decide/decision"
 )
 
-func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
+func newScoreCommand(env Env, outcome *outcomeRecorder) *cobra.Command {
 	var in inputFlags
 	var levels []string
 
@@ -62,7 +62,7 @@ func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
 			}
 
 			out, kind := scoreOutput(b.name, result, thresholds)
-			*outcome = kind
+			outcome.record(kind)
 			return ax.WriteJSON(cmd.OutOrStdout(), ax.NewEnvelope(ctx, out))
 		},
 	}

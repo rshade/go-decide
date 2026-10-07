@@ -9,6 +9,7 @@ import (
 
 	"github.com/kataras/jev"
 	ax "github.com/rshade/ax-go"
+	"github.com/rshade/ax-go/mcp"
 	"github.com/spf13/cobra"
 
 	"github.com/rshade/go-decide/clefclient"
@@ -21,6 +22,8 @@ const (
 	ExitUncertain = 10
 	ExitEscalate  = 11
 )
+
+const mcpServerName = "mcp-server"
 
 // Env is what a run needs from the outside. The zero value of each field falls
 // back to the process: os.Stdin, os.Stdout, os.Stderr, os.Getenv, the resolved
@@ -64,9 +67,10 @@ func (e Env) withDefaults() Env {
 // standard error.
 func Run(ctx context.Context, args []string, env Env) int {
 	env = env.withDefaults()
-	var outcome outcomeKind
+	var outcome outcomeRecorder
 	root := newRoot(env, &outcome)
 	root.SetArgs(args)
+	serving := isMCPServer(root, args)
 
 	code := ax.Execute(ctx, root,
 		ax.WithStdin(env.Stdin),
@@ -75,13 +79,21 @@ func Run(ctx context.Context, args []string, env Env) int {
 		ax.WithEnv(env.Getenv),
 		ax.WithVersion(env.Version),
 	)
-	if code != ax.ExitSuccess {
+	if code != ax.ExitSuccess || serving {
 		return code
 	}
-	return outcome.exitCode()
+	return outcome.recorded().exitCode()
 }
 
-func newRoot(env Env, outcome *outcomeKind) *cobra.Command {
+// isMCPServer reports whether args run the mcp-server command. That process
+// ends with 0 or a failure code: an outcome a tool call produced is a result,
+// never the exit code of the server.
+func isMCPServer(root *cobra.Command, args []string) bool {
+	cmd, _, err := root.Find(args)
+	return err == nil && cmd.Name() == mcpServerName
+}
+
+func newRoot(env Env, outcome *outcomeRecorder) *cobra.Command {
 	root := &cobra.Command{
 		Use:     "go-decide",
 		Version: env.Version,
@@ -94,11 +106,14 @@ func newRoot(env Env, outcome *outcomeKind) *cobra.Command {
 	}
 	// Print only the release version, so --version matches the ldflags value.
 	root.SetVersionTemplate("{{.Version}}\n")
+	eval := newEvalCommand(env)
+	mcp.Exclude(eval)
 	root.AddCommand(
 		newAskCommand(env, outcome),
 		newScoreCommand(env, outcome),
-		newEvalCommand(env),
+		eval,
 		newSchemaCommand(root),
+		mcp.NewCommand(root, mcp.WithVersion(env.Version)),
 	)
 	return root
 }

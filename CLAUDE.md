@@ -85,7 +85,12 @@ test:
   is a `contract` envelope with `data.schema_version`. Exit codes: 0 decided,
   10 uncertain, 11 escalate, `ax` codes 1 to 4 for failures (`eval` exits 0
   with a report); each must appear in `docs/jev-decide-cli.md`. `--dry-run`
-  validates and stops without a key or a request.
+  validates and stops without a key or a request. `mcp-server` (ax-go's `mcp`
+  package, imported only in `internal/cli`) serves `ask` and `score` as MCP
+  tools, `go-decide-ask` and `go-decide-score`; `eval` is excluded with
+  `mcp.Exclude` because one call is one paid request per decision. Outcomes
+  over MCP are results, never errors, and `Run` ignores the recorded outcome
+  for `mcp-server`, so the server's exit code is never 10 or 11.
 
 `decision`, `jevclient` and `clefclient` may import only `ax-go`'s `contract`
 package, and `eval` only those plus `decision`; `internal/cli/deps_test.go`
@@ -103,7 +108,7 @@ and `Rate` classify failures with the backend's `Classify` (default
 ### Output schema versioning
 
 Golden files in `internal/cli/testdata/golden/` pin every outcome and the
-`__schema` output per version (`*.v<N>.json`; the current version is 4). Any
+`__schema` output per version (`*.v<N>.json`; the current version is 5). Any
 change to output shape, including a new command in `__schema`, needs a
 `SchemaVersion` bump plus a new set of golden files, not an edit to the
 existing ones. Each golden case has a `since` version; a new command starts at

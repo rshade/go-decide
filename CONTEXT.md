@@ -68,7 +68,8 @@ ships `ask`, `score` and `eval`.
 
 ## Interaction Model
 
-- **Inbound:** CLI commands (`ask`, `score` and `eval`)
+- **Inbound:** CLI commands (`ask`, `score` and `eval`), the same `ask` and
+  `score` as MCP tools through `mcp-server`,
   and a Go library API (`Choose[T ~string]`, `Rate` and typed option sets).
   Input is a decision spec validated before use.
 - **Outbound:** for Jev, HTTPS `POST /v1/systemone` with bearer auth, through

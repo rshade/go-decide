@@ -10,7 +10,7 @@ import (
 	"github.com/rshade/go-decide/decision"
 )
 
-func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
+func newAskCommand(env Env, outcome *outcomeRecorder) *cobra.Command {
 	var in inputFlags
 	var options []string
 
@@ -62,7 +62,7 @@ func newAskCommand(env Env, outcome *outcomeKind) *cobra.Command {
 			}
 
 			out, kind := askOutput(b.name, result, thresholds)
-			*outcome = kind
+			outcome.record(kind)
 			return ax.WriteJSON(cmd.OutOrStdout(), ax.NewEnvelope(ctx, out))
 		},
 	}

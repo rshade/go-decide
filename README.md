@@ -166,6 +166,34 @@ go-decide eval --decisions testdata/decisions.json \
 All three commands accept `--backend` and `--dry-run`.
 `go-decide <command> --help` lists every flag.
 
+## Running as an MCP server
+
+`go-decide mcp-server` lets an agent call `ask` and `score` as tools
+(`go-decide-ask` and `go-decide-score`) over stdio. For a client that takes an
+`mcpServers` block:
+
+```json
+{
+  "mcpServers": {
+    "go-decide": {
+      "command": "go-decide",
+      "args": ["mcp-server"],
+      "env": {
+        "TYPESAFE_API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
+An `uncertain` or `escalate` outcome comes back as a normal result with
+`outcome` set, not as an error, and `decided` still does not mean approved.
+`eval` is not offered. **Every tool call is a paid request**, so pass
+`dry-run` to validate without spending. The server reads the same credentials
+as the CLI from its environment and never takes one as a tool input. HTTP is
+available with `--transport http` and stays on loopback unless you opt out.
+See [docs/jev-decide-cli.md](docs/jev-decide-cli.md#mcp-server) for details.
+
 ## Know the limits
 
 - **Decided does not mean approved.** The model ranks options well but its

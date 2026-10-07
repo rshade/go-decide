@@ -63,6 +63,12 @@ output fields that vary between identical calls as non-deterministic.
 - **WHEN** `__schema` is run
 - **THEN** it also lists `eval` with its flags and output version
 
+#### Scenario: Schema lists the MCP server
+
+- **WHEN** `__schema` is run at schema version 5
+- **THEN** it also lists `mcp-server`, and golden files for version 5 exist
+  for every output with the version 4 files unchanged
+
 ### Requirement: A dry run validates without asking
 
 The system SHALL honor the shared `--dry-run` flag on `ask`, `score` and `eval`

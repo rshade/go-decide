@@ -36,7 +36,8 @@ the Clef spike verdict (#18) and keeps the placeholder thresholds.
 
 - [ ] #6 Tune confidence threshold on real decisions [M]
   (thresholds are placeholders until then; needs #9's real decisions)
-- [ ] #21 Serve the commands as MCP tools with `ax-go`'s `mcp-server` [M]
+- [x] #21 Serve the commands as MCP tools with `ax-go`'s `mcp-server` [M]
+  Implemented as the OpenSpec change `add-mcp-server`; `eval` is not a tool.
 - [ ] #22 Ship the `decide` skill in this repository [S]
 
 ## Future Vision (Long-Term)
