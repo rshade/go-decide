@@ -81,6 +81,24 @@ SHALL validate and return without a request.
 - **WHEN** `ask` is called with `dry-run` set
 - **THEN** the result is the dry-run envelope and no request is sent
 
+### Requirement: Tool calls never read files
+
+A tool call SHALL NOT make the server read a file or its standard input. A
+`spec` input SHALL be refused with a validation error that names the field,
+before any request is sent, and the error SHALL NOT echo any file content.
+Decisions are given inline.
+
+#### Scenario: Spec file refused
+
+- **WHEN** a client calls `go-decide-ask` with `spec` set to a readable file
+- **THEN** the call is flagged as an error with `validation_error` and the
+  `spec` field, no request is sent, and the file content is not returned
+
+#### Scenario: Command line unaffected
+
+- **WHEN** `go-decide ask --spec decision.json` runs on the command line
+- **THEN** the spec is read and the question is asked as before
+
 ### Requirement: Credentials never travel in tool calls
 
 The server SHALL read credentials only from its environment, as the command

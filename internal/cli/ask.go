@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	ax "github.com/rshade/ax-go"
 	"github.com/rshade/ax-go/contract"
@@ -10,8 +11,8 @@ import (
 	"github.com/rshade/go-decide/decision"
 )
 
-func newAskCommand(env Env, outcome *outcomeRecorder) *cobra.Command {
-	var in inputFlags
+func newAskCommand(env Env, outcome *outcomeRecorder, serving *atomic.Bool) *cobra.Command {
+	in := inputFlags{serving: serving}
 	var options []string
 
 	cmd := &cobra.Command{

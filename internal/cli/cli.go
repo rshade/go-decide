@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"sync/atomic"
 
 	"github.com/kataras/jev"
 	ax "github.com/rshade/ax-go"
@@ -106,14 +107,21 @@ func newRoot(env Env, outcome *outcomeRecorder) *cobra.Command {
 	}
 	// Print only the release version, so --version matches the ldflags value.
 	root.SetVersionTemplate("{{.Version}}\n")
+	var serving atomic.Bool
 	eval := newEvalCommand(env)
 	mcp.Exclude(eval)
+	server := mcp.NewCommand(root, mcp.WithVersion(env.Version))
+	serve := server.RunE
+	server.RunE = func(cmd *cobra.Command, args []string) error {
+		serving.Store(true)
+		return serve(cmd, args)
+	}
 	root.AddCommand(
-		newAskCommand(env, outcome),
-		newScoreCommand(env, outcome),
+		newAskCommand(env, outcome, &serving),
+		newScoreCommand(env, outcome, &serving),
 		eval,
 		newSchemaCommand(root),
-		mcp.NewCommand(root, mcp.WithVersion(env.Version)),
+		server,
 	)
 	return root
 }
