@@ -308,22 +308,52 @@ func TestMCPSecretsNeverAppearInResultsOrLogs(t *testing.T) {
 	}
 }
 
-func TestMCPSpecFromStandardInputIsRefused(t *testing.T) {
-	s := startMCP(t)
-	done := make(chan *sdk.CallToolResult, 1)
-	go func() {
-		done <- s.call(t, "go-decide-ask", map[string]any{"spec": "-"})
-	}()
-	select {
-	case res := <-done:
-		if !res.IsError {
-			t.Errorf("--spec - succeeded over MCP: %s", resultText(t, res))
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("--spec - hung over MCP")
+func TestMCPNeverReadsASpecFile(t *testing.T) {
+	dir := t.TempDir()
+	valid := filepath.Join(dir, "decision.json")
+	if err := os.WriteFile(valid, []byte(`{"state":"VALID-SPEC-MARKER","instructions":"Ship it?","options":[{"name":"ship","description":"go"},{"name":"hold","description":"wait"}]}`), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	if hits := s.fake.hits.Load(); hits != 0 {
-		t.Errorf("%d requests reached the backend, want 0", hits)
+	other := filepath.Join(dir, "notes.txt")
+	if err := os.WriteFile(other, []byte("NOT-A-SPEC-MARKER"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct{ name, path, marker string }{
+		{"valid spec file", valid, "VALID-SPEC-MARKER"},
+		{"file that is not a spec", other, "NOT-A-SPEC-MARKER"},
+		{"standard input", "-", ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s := startMCP(t)
+			done := make(chan *sdk.CallToolResult, 1)
+			go func() { done <- s.call(t, "go-decide-ask", map[string]any{"spec": tt.path}) }()
+			select {
+			case res := <-done:
+				text := resultText(t, res)
+				if !res.IsError || !strings.Contains(text, `"error_code":"validation_error"`) || !strings.Contains(text, `"field":"spec"`) {
+					t.Errorf("spec %q over MCP: error %v, result %q; want a validation_error naming the spec field", tt.path, res.IsError, text)
+				}
+				if tt.marker != "" && strings.Contains(text, tt.marker) {
+					t.Errorf("the result echoes content of %s", tt.path)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("a spec call hung over MCP")
+			}
+			if hits := s.fake.hits.Load(); hits != 0 {
+				t.Errorf("%d requests reached the backend, want 0", hits)
+			}
+		})
+	}
+}
+
+func TestSpecFileStillWorksOnTheCommandLine(t *testing.T) {
+	spec := filepath.Join(t.TempDir(), "decision.json")
+	if err := os.WriteFile(spec, []byte(`{"state":"all checks passed","instructions":"Ship it?","options":[{"name":"ship","description":"go"},{"name":"hold","description":"wait"}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	r := execute(t, "", []string{"ask", "--spec", spec}, http.StatusOK, choiceAnswer("ship", 0.95))
+	if r.code != 0 || r.hits != 1 {
+		t.Fatalf("exit %d with %d requests, want 0 and 1; stderr: %s", r.code, r.hits, r.stderr)
 	}
 }
 

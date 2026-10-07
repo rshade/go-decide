@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync/atomic"
 
 	"github.com/rshade/ax-go/contract"
 	"github.com/spf13/cobra"
@@ -16,6 +17,9 @@ import (
 const specFlagUsage = "decision spec as a JSON file, or - for standard input"
 
 type inputFlags struct {
+	// serving is set while mcp-server runs. A tool caller must not make the
+	// server read a file or its standard input, so --spec is refused then.
+	serving      *atomic.Bool
 	spec         string
 	state        string
 	instructions string
@@ -41,6 +45,10 @@ func (f *inputFlags) registerThresholds(cmd *cobra.Command) {
 // entries are the repeated --option or --level values.
 func (f *inputFlags) loadSpec(cmd *cobra.Command, entries []decision.SpecEntry, forLevels bool) (decision.Spec, error) {
 	var doc decision.Spec
+	if f.spec != "" && f.serving != nil && f.serving.Load() {
+		return decision.Spec{}, newValidationError(cmd.Context(),
+			"--spec is not available over MCP: pass state, instructions and the options or levels inline", "spec")
+	}
 	if f.spec != "" {
 		var err error
 		if doc, err = readSpec(cmd, f.spec); err != nil {

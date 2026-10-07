@@ -186,9 +186,10 @@ go-decide mcp-server --transport http --addr 127.0.0.1:8080
 
 HTTP binds loopback by default and refuses another address unless
 `--allow-non-loopback` is given. There is no authentication, so put one in
-front of any endpoint that is not loopback. The tools cannot read a decision
-spec from standard input, because that is the protocol channel: pass the spec
-as a file or give the fields inline.
+front of any endpoint that is not loopback. A tool call never makes the server
+read a file or its standard input, so the `spec` input is refused with a
+validation error. Pass `state`, `instructions` and the `option` or `level`
+values inline. `--spec` works as before on the command line.
 
 Every `go-decide-ask` and `go-decide-score` call is a paid request. Pass
 `dry-run` to validate an input without spending anything. The server reports
