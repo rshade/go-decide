@@ -145,3 +145,22 @@ func classifyServer200(t *testing.T, body string) error {
 	_, err = c.SystemOne(context.Background(), urgentRequest())
 	return Classify(context.Background(), err)
 }
+
+func TestClassifyConfigurationErrorNamesClefNotJev(t *testing.T) {
+	t.Setenv("CLOUDFLARE_AUTH_TOKEN", "")
+	_, err := NewClient()
+	if err == nil {
+		t.Fatal("expected a configuration error")
+	}
+	got := Classify(context.Background(), err)
+	var ce *contract.Error
+	if !errors.As(got, &ce) {
+		t.Fatalf("Classify returned %T, want *contract.Error", got)
+	}
+	if strings.Contains(ce.Message, "jev") {
+		t.Errorf("message %q names jev, want clef", ce.Message)
+	}
+	if !strings.Contains(ce.Message, "clef: invalid configuration") || !strings.Contains(ce.Message, "CLOUDFLARE_AUTH_TOKEN") {
+		t.Errorf("message %q should say clef: invalid configuration and name the variable", ce.Message)
+	}
+}

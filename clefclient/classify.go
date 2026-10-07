@@ -66,6 +66,10 @@ func classify(ctx context.Context, err error) *contract.Error {
 			contract.WithErrorExitCode(contract.ExitNetwork),
 			contract.WithRetryable(true))
 	}
+	if errors.Is(err, jev.ErrConfig) {
+		msg := strings.Replace(err.Error(), jev.ErrConfig.Error(), "clef: invalid configuration", 1)
+		return contract.NewError(ctx, CodeInternal, msg)
+	}
 	return contract.NewError(ctx, CodeInternal, err.Error())
 }
 
