@@ -25,6 +25,8 @@ the Clef spike verdict (#18) and keeps the placeholder thresholds.
 - [ ] #13 Document the logging policy in the `jevclient` package doc [S]
 - [ ] #18 Spike: is Clef a drop-in System One provider? (timebox 1d)
   *Spike promoted 2026-10-06 - timebox timebox/1d; decide by 2026-10-07*
+  Implemented as the OpenSpec change `add-clef-backend` (a `clefclient`
+  package and `--backend clef`); see `docs/clef-2026-10-06.md`.
 - [ ] #19 Rename the module, binary and repo to `go-decide` [M]
 - [ ] #20 CI and release pipeline for v0.1.0 [L]
   (release-please and GoReleaser landed in `8223de5`; CI, docs and the

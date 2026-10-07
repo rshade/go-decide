@@ -36,8 +36,10 @@ mise exec -- openspec ...         # OpenSpec is pinned in mise.toml
 run them. Run one deliberately, for example
 `go test -tags probe -run TestJevRecommendations -count=1`. Those files read
 `./.env` themselves. The `live_test.go` files in `decision/` and `jevclient/`
-skip unless `TYPESAFE_API_KEY` is set in the environment (they do not read
-`.env`).
+skip unless `TYPESAFE_API_KEY` is set in the environment, and the one in
+`clefclient/` unless `CLOUDFLARE_AUTH_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are
+(none of them read `.env`; export it first with `set -a; . ./.env; set +a`).
+`clef_probe_test.go` is the clef probe, with Jev's cached answers beside it.
 
 ## Architecture
 
@@ -52,6 +54,15 @@ test:
   200s that answer every question asked; never invalidated). `Classify` maps
   failures to `ax-go` `contract.Error` codes, which must all be listed in
   `docs/jev-errors.md` (`docs_test.go` fails otherwise).
+- `clefclient/` builds a `*jev.Client` for Cloudflare's clef, with the same
+  guarantees (token from `CLOUDFLARE_AUTH_TOKEN`, account from
+  `CLOUDFLARE_ACCOUNT_ID`, https-or-loopback `CLOUDFLARE_BASE_URL`, no
+  redirects, retries only 429). It cannot marshal `jev.Questions` itself (jev's
+  encoder is private), so a `RoundTripper` swaps the System One path for the
+  clef run path and unwraps Cloudflare's `result` envelope. `Classify` gives
+  `clef.*` codes, listed in `docs/clef-errors.md`. The shared plumbing (base
+  URL checks, no-redirect client, redacting logger, response cache) lives in
+  `internal/clientkit`.
 - `decision/` is the typed domain. `Choose[T ~string]` (over `Options[T]`) and
   `Rate` (over ordered `Levels`, 2 to 10) return sealed results:
   `Result[T]` (`Decided`, `Uncertain`, `Escalate`, consumed with `Match`) and
@@ -75,14 +86,20 @@ test:
   with a report); each must appear in `docs/jev-decide-cli.md`. `--dry-run`
   validates and stops without a key or a request.
 
-`decision` and `jevclient` may import only `ax-go`'s `contract` package, and
-`eval` only those plus `decision`; `internal/cli/deps_test.go` fails if any of
-them pull in `ax`'s OpenTelemetry/gRPC dependencies.
+`decision`, `jevclient` and `clefclient` may import only `ax-go`'s `contract`
+package, and `eval` only those plus `decision`; `internal/cli/deps_test.go`
+fails if any of them pull in `ax`'s OpenTelemetry/gRPC dependencies.
+
+`ask`, `score` and `eval` take `--backend jev|clef` (default `jev`). A run
+uses one backend and its credentials only, never falling back to the other.
+`decision.WithClassifier` makes `Choose` and `Rate` classify failures with
+the backend's `Classify` (default `jevclient.Classify`); the CLI passes it.
+`Env.NewClefClient` is the injectable constructor for clef.
 
 ### Output schema versioning
 
 Golden files in `internal/cli/testdata/golden/` pin every outcome and the
-`__schema` output per version (`*.v<N>.json`; the current version is 3). Any
+`__schema` output per version (`*.v<N>.json`; the current version is 4). Any
 change to output shape, including a new command in `__schema`, needs a
 `SchemaVersion` bump plus a new set of golden files, not an edit to the
 existing ones. Each golden case has a `since` version; a new command starts at
@@ -114,9 +131,10 @@ responses and is gitignored.
 
 ## Conventions
 
-- Key in `TYPESAFE_API_KEY` (from `console.typesafe.ai/keys`), kept in the
+- Keys in `TYPESAFE_API_KEY` (from `console.typesafe.ai/keys`),
+  `CLOUDFLARE_AUTH_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, kept in the
   environment or the ignored `.env`. Never depend on `openjevai/jev` or any
-  non-TypeSafe gateway.
+  gateway other than TypeSafe's and Cloudflare's own endpoints.
 - Issues close through `Closes #N` in `PR_MESSAGE.md` (gitignored), never via
   `gh issue close`.
 - Commitlint in related repos is v21, which parses a body line starting with

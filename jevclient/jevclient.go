@@ -47,6 +47,8 @@ import (
 	"time"
 
 	"github.com/kataras/jev"
+
+	"github.com/rshade/go-decide/internal/clientkit"
 )
 
 // Option adjusts how [NewClient] builds the client.
@@ -85,6 +87,12 @@ func defaultRetryPolicy() jev.RetryPolicy {
 	return p
 }
 
+// WithResponseCache stores each successful response in dir and answers a
+// repeated request from there without a network call. See the package doc.
+func WithResponseCache(dir string) Option {
+	return func(c *config) { c.cacheDir = dir }
+}
+
 // NewClient returns a Jev client configured from the environment.
 func NewClient(opts ...Option) (*jev.Client, error) {
 	cfg := config{retry: defaultRetryPolicy()}
@@ -95,7 +103,7 @@ func NewClient(opts ...Option) (*jev.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger, err := newLogger(cfg.logOutput, strings.TrimSpace(os.Getenv("TYPESAFE_API_KEY")))
+	logger, err := clientkit.NewLogger(cfg.logOutput, "TYPESAFE_LOG_LEVEL", strings.TrimSpace(os.Getenv("TYPESAFE_API_KEY")))
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +112,7 @@ func NewClient(opts ...Option) (*jev.Client, error) {
 		jevOpts = append(jevOpts, jev.WithTimeout(cfg.timeout))
 	}
 	if cfg.cacheDir != "" {
-		jevOpts = append(jevOpts, jev.WithHTTPClient(newCachingClient(cfg.cacheDir)))
+		jevOpts = append(jevOpts, jev.WithHTTPClient(clientkit.NewCachingClient(cfg.cacheDir, http.DefaultTransport)))
 	}
 	return jev.New(jevOpts...)
 }

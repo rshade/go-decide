@@ -1,4 +1,4 @@
-package jevclient
+package clientkit
 
 import (
 	"bytes"
@@ -13,12 +13,6 @@ import (
 	"strconv"
 )
 
-// WithResponseCache stores each successful response in dir and answers a
-// repeated request from there without a network call. See the package doc.
-func WithResponseCache(dir string) Option {
-	return func(c *config) { c.cacheDir = dir }
-}
-
 // cacheEntry is what a cache file holds: never a header from the request.
 type cacheEntry struct {
 	Status      int             `json:"status"`
@@ -31,13 +25,13 @@ type cachingTransport struct {
 	next http.RoundTripper
 }
 
-// newCachingClient returns an HTTP client that serves from and fills the cache
-// in dir. It refuses redirects as the default jev client does. The directory is
+// NewCachingClient returns an HTTP client that serves from and fills the cache
+// in dir, sending a miss through next. It refuses redirects as the default jev client does. The directory is
 // created on the first write, so a client that fails construction or never
 // stores a response leaves nothing behind.
-func newCachingClient(dir string) *http.Client {
+func NewCachingClient(dir string, next http.RoundTripper) *http.Client {
 	return &http.Client{
-		Transport: cachingTransport{dir: dir, next: http.DefaultTransport},
+		Transport: cachingTransport{dir: dir, next: next},
 		CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		},

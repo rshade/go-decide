@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/rshade/go-decide/decision"
-	"github.com/rshade/go-decide/jevclient"
 )
 
 func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
@@ -26,6 +25,10 @@ func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
+			b, err := in.backend.resolve(ctx)
+			if err != nil {
+				return err
+			}
 			entries, err := parseEntries(ctx, "level", levels)
 			if err != nil {
 				return err
@@ -38,24 +41,24 @@ func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
 			if err != nil {
 				return failure(ctx, err)
 			}
-			thresholds, err := in.thresholds(cmd)
+			thresholds, err := in.thresholds(cmd, b)
 			if err != nil {
 				return err
 			}
 			if contract.DryRunFromContext(ctx) {
-				return writeDryRun(cmd, dryRunOutput("score", spec.Levels, thresholds))
+				return writeDryRun(cmd, dryRunOutput(b.name, "score", spec.Levels, thresholds))
 			}
-			client, err := env.NewClient()
+			client, err := b.client(ctx, env, "")
 			if err != nil {
-				return jevclient.Classify(ctx, err)
+				return err
 			}
 
-			result, err := decision.Rate(ctx, client, question, decision.WithThresholds(thresholds))
+			result, err := decision.Rate(ctx, client, question, b.decisionOptions(thresholds)...)
 			if err != nil {
 				return failure(ctx, err)
 			}
 
-			out, kind := scoreOutput(result, thresholds)
+			out, kind := scoreOutput(b.name, result, thresholds)
 			*outcome = kind
 			return ax.WriteJSON(cmd.OutOrStdout(), ax.NewEnvelope(ctx, out))
 		},
@@ -66,9 +69,10 @@ func newScoreCommand(env Env, outcome *outcomeKind) *cobra.Command {
 	return cmd
 }
 
-func scoreOutput(result decision.ScoreResult[string], thresholds decision.Thresholds) (ScoreOutput, outcomeKind) {
+func scoreOutput(backend string, result decision.ScoreResult[string], thresholds decision.Thresholds) (ScoreOutput, outcomeKind) {
 	out := ScoreOutput{
 		SchemaVersion: SchemaVersion,
+		Backend:       backend,
 		Score:         result.Score(),
 		Confidence:    result.Confidence().Float64(),
 		Probabilities: probabilitiesOutput(result.Probabilities()),

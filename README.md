@@ -1,8 +1,9 @@
 # go-decide
 
 Typed decision support on a System One model. Jev, from TypeSafe AI, is the
-default. The project is in early development; see [CONTEXT.md](CONTEXT.md)
-for boundaries and [ROADMAP.md](ROADMAP.md) for plans.
+default, and Cloudflare's clef is an opt-in second backend. The project is in
+early development; see [CONTEXT.md](CONTEXT.md) for boundaries and
+[ROADMAP.md](ROADMAP.md) for plans.
 
 ## Install
 
@@ -49,9 +50,30 @@ resp, err := client.SystemOne(ctx, jev.Request{
 
 Keep the token in the environment or an ignored `.env`. Never commit it.
 
+## clef client
+
+`clefclient.NewClient` returns the same `*jev.Client` type, pointed at
+Cloudflare Workers AI's `clef` model, with the same guarantees: credentials
+only from the environment, an https-or-loopback endpoint, no redirects,
+bounded retries (429 only) and answer validation. Failures are classified by
+`clefclient.Classify` into `clef.*` codes (see
+[docs/clef-errors.md](docs/clef-errors.md)). Pass it to `decision.Choose` with
+`decision.WithClassifier(clefclient.Classify)` so errors carry clef's codes.
+
+| Variable | Purpose |
+| --- | --- |
+| `CLOUDFLARE_AUTH_TOKEN` | Cloudflare API token with Workers AI access. Required. Read only from the environment. |
+| `CLOUDFLARE_ACCOUNT_ID` | The 32-character account ID. Required. |
+| `CLOUDFLARE_BASE_URL` | Optional endpoint. Must be `https`, or `http` to a loopback IP address. |
+| `CLOUDFLARE_LOG_LEVEL` | Optional: `debug`, `info`, `warn`, `error` or `off` (default off). The token is replaced in every attribute. |
+
+How clef compares with Jev on the same decisions is in
+[docs/clef-2026-10-06.md](docs/clef-2026-10-06.md).
+
 ## Command line
 
-`go-decide` asks a System One model, Jev by default. `ask` and `score` put a
+`go-decide` asks a System One model, Jev by default or clef with
+`--backend clef`. `ask` and `score` put a
 choice or an ordered rubric to it and print a versioned JSON outcome. The
 exit code says whether the answer can be acted on: 0 decided, 10 uncertain,
 11 escalate, and 1 to 4 for failures.
@@ -61,10 +83,10 @@ go-decide ask --state "All 412 tests passed." --instructions "Ship it?" \
   --option ship="safe to release" --option hold="wait"
 ```
 
-`go-decide eval` runs a labelled decision set through Jev and reports how well
-the confidence separates clear decisions from contested ones: accuracy,
-contested AUC, Brier score, and precision and recall per threshold. Use it to
-check the thresholds; it measures and never approves.
+`go-decide eval` runs a labelled decision set through the chosen backend and
+reports how well the confidence separates clear decisions from contested ones:
+accuracy, contested AUC, Brier score, and precision and recall per threshold.
+Use it to check the thresholds; it measures and never approves.
 
 ```sh
 go-decide eval --decisions testdata/decisions.json \

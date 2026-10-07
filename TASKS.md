@@ -271,7 +271,8 @@ follows the release. The rename is free only before the first tag.*
 
 ### JD-3.1: Spike: is Clef a drop-in System One provider? (timebox 1d)
 
-**Status:** TODO
+**Status:** TODO. The backend itself is the OpenSpec change
+`add-clef-backend` (`clefclient`, `--backend clef`, schema version 4).
 
 **ID:** JD-3.1
 **Description:** File as a `spike`, `timebox/1d` issue. In a root probe

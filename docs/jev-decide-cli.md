@@ -21,8 +21,25 @@ go-decide __schema
 
 All three commands take the same thresholds: `--floor` (default 0.5) and
 `--confident` (default 0.9). The defaults are placeholders until issue #6
-tunes them on real decisions. The token comes from `TYPESAFE_API_KEY`, never
-a flag. `--help` says the same.
+tunes them on real decisions. The tokens come from the environment, never a
+flag. `--help` says the same.
+
+## Backends
+
+`--backend jev` (the default) asks Jev through `https://api.typesafe.ai`, with
+the token in `TYPESAFE_API_KEY`. `--backend clef` asks Cloudflare's `clef`
+model through Workers AI, with `CLOUDFLARE_AUTH_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`; `CLOUDFLARE_BASE_URL` and `CLOUDFLARE_LOG_LEVEL` are
+optional. Any other value exits 2 and lists the allowed ones.
+
+A run uses one backend and only that backend's credentials. Missing clef
+credentials fail the run; the command never falls back to Jev, and a
+`--dry-run` needs neither. The defaults for `--floor` and `--confident` are kept
+per backend and are the same for both for now. They are placeholders: on the
+40-decision probe clef separated contested decisions less sharply than Jev
+(see `docs/clef-2026-10-06.md`), so do not carry numbers tuned for one over to
+the other. Failures use `clef.*` error codes (`docs/clef-errors.md`) and the
+same exit codes as Jev's.
 
 ## Decision spec
 
@@ -64,6 +81,7 @@ envelope.
 | Field | Meaning |
 | --- | --- |
 | `schema_version` | Version of this shape. |
+| `backend` | `jev` or `clef`: the model that answered. |
 | `outcome` | `decided`, `uncertain` or `escalate`. |
 | `choice` | The option to act on. Present only when decided. |
 | `leading` | The leading option. Present only when uncertain or escalate. |
@@ -79,17 +97,18 @@ envelope.
 
 `--dry-run` validates the spec and thresholds and stops: no request is sent, no
 API key is needed and nothing is billed. It prints an envelope whose data has
-`schema_version`, `dry_run` (always true), `kind` (`choice` or `score`), `names`
-(the options or levels in the order given) and `thresholds`, and exits 0. An
-invalid spec fails with exit code 2 just as it does without the flag.
+`schema_version`, `backend`, `dry_run` (always true), `kind` (`choice` or
+`score`), `names` (the options or levels in the order given) and `thresholds`,
+and exits 0. An invalid spec fails with exit code 2 just as it does without the
+flag.
 
 ## eval
 
-`eval` reads a decision set (`--decisions`) and a truth file (`--truth`) in
-the format of `testdata/decisions.json` and `testdata/decisions_truth.json`.
-It asks Jev one choice question per decision, in file order. The question's
-state is the decision's `title`, `context`, `constraints` and `options`.
-Option fields beyond `name` and `description` (such as `pros` or
+`eval` reads a decision set (`--decisions`) and a truth file (`--truth`) in the
+format of `testdata/decisions.json` and `testdata/decisions_truth.json`. It asks
+the chosen backend one choice question per decision, in file order. The
+question's state is the decision's `title`, `context`, `constraints` and
+`options`. Option fields beyond `name` and `description` (such as `pros` or
 `cost_usd_per_month`) are sent as they are. `--instructions` replaces the
 default "Given the stated constraints, which option should the team choose?".
 
@@ -107,6 +126,7 @@ picked its correct option. The report's data has:
 | Field | Meaning |
 | --- | --- |
 | `schema_version` | Version of this shape. |
+| `backend` | `jev` or `clef`: the model that was asked. |
 | `metrics.accuracy` | Correct picks over dominant decisions. `null` with none. |
 | `metrics.contested_auc` | How well 1 minus the pick confidence detects contested decisions. `null` unless both classes are present. |
 | `metrics.brier` | Mean squared gap between pick confidence and safe (1) or not (0). |
@@ -125,8 +145,8 @@ no partial report, and the error names the decision.
 same set with the same instructions sends nothing, and a rerun after a failure
 only pays for what was not answered. Entries never expire: delete the
 directory to measure again after a model change. Without the flag nothing is
-written. `--dry-run` validates both files and prints `decisions`, `dominant`,
-`contested` and `thresholds` without a key or a request.
+written. `--dry-run` validates both files and prints `backend`, `decisions`,
+`dominant`, `contested` and `thresholds` without a key or a request.
 
 The bundled set is 40 synthetic, constraint-shaped decisions. Treat it as a
 smoke test. Tuning the thresholds needs past decisions with known outcomes.
@@ -143,13 +163,14 @@ smoke test. Tuning the thresholds needs past decisions with known outcomes.
 | 10 | Uncertain: for a person. |
 | 11 | Escalate: for the full `decide` debate. |
 
-Codes 1 to 4 are the shared `ax-go` codes; see `docs/jev-errors.md` for the Jev
-error codes behind them. Codes 5 to 9 are left free.
+Codes 1 to 4 are the shared `ax-go` codes; see `docs/jev-errors.md` and
+`docs/clef-errors.md` for the Jev and clef error codes behind them. Codes 5 to 9
+are left free.
 
 ## Output version
 
-`schema_version` is 3. Version 2 added `eval`. Version 3 renamed the tool to
-`go-decide`; the `ask`, `score` and `eval` shapes are otherwise unchanged.
+`schema_version` is 4. Version 2 added `eval`. Version 3 renamed the tool to
+`go-decide`. Version 4 added `backend` to every output; nothing else moved.
 `go-decide __schema` prints that integer as its top-level `schema_version`,
 with `tool` set to `go-decide`.
 `schema_version` pins those shapes, one golden file per version under

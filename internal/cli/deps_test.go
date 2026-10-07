@@ -10,7 +10,7 @@ func TestLibraryPackagesStayFreeOfTheRuntimeDependencies(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs go list; skipped with -short")
 	}
-	out, err := exec.Command("go", "list", "-deps", "../../decision", "../../jevclient", "../../eval").CombinedOutput()
+	out, err := exec.Command("go", "list", "-deps", "../../decision", "../../jevclient", "../../clefclient", "../../eval").CombinedOutput()
 	if err != nil {
 		t.Fatalf("go list -deps: %v\n%s", err, out)
 	}

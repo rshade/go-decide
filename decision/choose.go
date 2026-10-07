@@ -32,6 +32,32 @@ type ChooseOption func(*chooseConfig)
 
 type chooseConfig struct {
 	thresholds Thresholds
+	classify   func(context.Context, error) error
+}
+
+type classifierKey struct{}
+
+// WithClassifier replaces [jevclient.Classify] as the function that turns a
+// failed call, or an answer that breaks the contract, into the error [Choose]
+// and [Rate] return. Use it with a client for another System One backend, so
+// failures carry that backend's codes.
+func WithClassifier(classify func(context.Context, error) error) ChooseOption {
+	return func(c *chooseConfig) { c.classify = classify }
+}
+
+func defaultChooseConfig(opts []ChooseOption) chooseConfig {
+	cfg := chooseConfig{thresholds: DefaultThresholds(), classify: jevclient.Classify}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	return cfg
+}
+
+func classifierOf(ctx context.Context) func(context.Context, error) error {
+	if classify, ok := ctx.Value(classifierKey{}).(func(context.Context, error) error); ok && classify != nil {
+		return classify
+	}
+	return jevclient.Classify
 }
 
 // WithThresholds replaces the default thresholds. A thresholds value that is not
@@ -44,10 +70,8 @@ func WithThresholds(t Thresholds) ChooseOption {
 // question (see [Question.Validate]) and invalid thresholds are reported before
 // any request is sent, so they cost nothing.
 func Choose[T ~string](ctx context.Context, client *jev.Client, q Question[T], opts ...ChooseOption) (Result[T], error) {
-	cfg := chooseConfig{thresholds: DefaultThresholds()}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
+	cfg := defaultChooseConfig(opts)
+	ctx = context.WithValue(ctx, classifierKey{}, cfg.classify)
 	if client == nil {
 		return nil, ErrNilClient
 	}
@@ -74,7 +98,7 @@ func Choose[T ~string](ctx context.Context, client *jev.Client, q Question[T], o
 		},
 	})
 	if err != nil {
-		return nil, jevclient.Classify(ctx, err)
+		return nil, cfg.classify(ctx, err)
 	}
 
 	return fromResponse(ctx, resp, q.Options, cfg.thresholds)
@@ -118,5 +142,5 @@ func fromAnswer[T ~string](ctx context.Context, answer jev.ChoiceAnswer, options
 }
 
 func invalidResponse(ctx context.Context, format string, args ...any) error {
-	return jevclient.Classify(ctx, fmt.Errorf("%w: %s", jev.ErrResponse, fmt.Sprintf(format, args...)))
+	return classifierOf(ctx)(ctx, fmt.Errorf("%w: %s", jev.ErrResponse, fmt.Sprintf(format, args...)))
 }

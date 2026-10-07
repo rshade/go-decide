@@ -2,17 +2,18 @@
 
 ## Core Architectural Identity
 
-`go-decide` is a thin, strongly typed Go client and CLI for System One
-models, aimed at fast-path decision support. It asks a System One model, Jev
-by default. It provides `ask`, `score` and `eval` commands built on `ax-go`,
-plus an optional pre-screen for the `decide` skill. It turns Jev's `choice`,
-`score` and `noul` answers into values callers cannot misuse: typed option
-sets, validated probabilities and a result that forces the caller to handle
-low confidence.
+`go-decide` is a thin, strongly typed Go client and CLI for System One models,
+aimed at fast-path decision support. It asks a System One model, Jev by default
+or Cloudflare's clef with `--backend clef`. It provides `ask`, `score` and
+`eval` commands built on `ax-go`, plus an optional pre-screen for the `decide`
+skill. It turns Jev's `choice`, `score` and `noul` answers into values callers
+cannot misuse: typed option sets, validated probabilities and a result that
+forces the caller to handle low confidence.
 
 The repository is a research workspace (probes, spikes, a draft
 `finfocus-spec` proposal) that has started to grow product code: `jevclient/`
-(the configured Jev client and its error classification), `decision/` (the
+(the configured Jev client and its error classification), `clefclient/` (the
+same for Cloudflare's clef), `decision/` (the
 validated `Probability`, `Thresholds`, `Levels` and `Spec` types, the sealed
 `Result` and `ScoreResult`, and `Choose` and `Rate`), `eval/` (metrics over
 labelled results) and the CLI in `internal/cli` and `cmd/go-decide`, which
@@ -22,7 +23,8 @@ ships `ask`, `score` and `eval`.
 
 - **No debate protocol.** Multi-agent adversarial debate stays in the
   `decide` skill. `go-decide` only supplies a fast-path pre-screen.
-- **No auto-approval.** Jev ranks well but is not calibrated (Brier 0.236).
+- **No auto-approval.** Jev ranks well but is not calibrated (Brier 0.236),
+  and clef separates contested decisions less sharply.
   Output must never authorize an action without a human or a higher-cost
   path. Low confidence escalates; it is never silently defaulted. A decided
   result means clear enough to skip the debate, not approved.
@@ -35,11 +37,18 @@ ships `ask`, `score` and `eval`.
   a result.
 - **No unvalidated spend.** Decision-spec input is validated before any API
   call is made.
-- **No token in the repo.** `TYPESAFE_API_KEY` lives in the environment or
-  an ignored `.env`. Never commit it.
+- **No token in the repo.** `TYPESAFE_API_KEY`, `CLOUDFLARE_AUTH_TOKEN` and
+  `CLOUDFLARE_ACCOUNT_ID` live in the environment or an ignored `.env`. Never
+  commit them.
 - **No third-party gateways.** Talk to `https://api.typesafe.ai` (or an
-  explicit `TYPESAFE_BASE_URL`). Do not depend on `openjevai/jev` or route
-  data through unverified proxies.
+  explicit `TYPESAFE_BASE_URL`) for Jev, and to
+  `https://api.cloudflare.com` (or an explicit `CLOUDFLARE_BASE_URL`) for
+  clef. Cloudflare is the one other permitted host because it serves the clef
+  model itself, not as a proxy. Do not depend on `openjevai/jev` or route data
+  through unverified proxies.
+- **No silent fallback between backends.** A run uses the backend it was
+  asked for and only that backend's credentials. A failure there is an error,
+  never a retry against the other model.
 - **No FinFocus core coupling.** FinFocus core forbids external API clients.
   Any recommendation scoring belongs in a plugin or behind a
   `finfocus-spec` RPC, not in this module.
@@ -62,9 +71,11 @@ ships `ask`, `score` and `eval`.
 - **Inbound:** CLI commands (`ask`, `score` and `eval`)
   and a Go library API (`Choose[T ~string]`, `Rate` and typed option sets).
   Input is a decision spec validated before use.
-- **Outbound:** HTTPS `POST /v1/systemone` with bearer auth, through
+- **Outbound:** for Jev, HTTPS `POST /v1/systemone` with bearer auth, through
   `kataras/jev` (pinned) built only by `jevclient.NewClient`. `GET /v1/models`
-  is the only other endpoint.
+  is the only other endpoint. For clef, HTTPS `POST
+  /client/v4/accounts/{id}/ai/run/@cf/cloudflare/clef` with bearer auth,
+  through the same pinned client, built only by `clefclient.NewClient`.
 - **Output:** versioned JSON with a sealed result type, chosen by the answer's
   confidence and two thresholds. Decided: at or above the confident level.
   Uncertain: from the floor up to the confident level, for a person. Escalate:
@@ -81,7 +92,8 @@ A proposed feature violates the boundaries if it:
 2. Spends API budget before validating input.
 3. Adds debate, persistence or orchestration logic that belongs in the
    `decide` skill.
-4. Embeds a credential or a non-TypeSafe endpoint.
+4. Embeds a credential or an endpoint other than TypeSafe's or Cloudflare's.
 5. Changes an output schema without a version bump and golden test update.
-6. Turns a failure into a result case, or lets a result that was never
+6. Falls back from one backend to the other.
+7. Turns a failure into a result case, or lets a result that was never
    produced read as decided.
