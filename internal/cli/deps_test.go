@@ -16,7 +16,7 @@ func TestLibraryPackagesStayFreeOfTheRuntimeDependencies(t *testing.T) {
 	}
 
 	for _, pkg := range strings.Fields(string(out)) {
-		for _, heavy := range []string{"go.opentelemetry.io/otel/sdk", "google.golang.org/grpc", "github.com/spf13/cobra", "github.com/rshade/ax-go/telemetry"} {
+		for _, heavy := range []string{"go.opentelemetry.io/otel/sdk", "google.golang.org/grpc", "github.com/spf13/cobra", "github.com/rshade/ax-go/telemetry", "github.com/rshade/ax-go/mcp", "github.com/modelcontextprotocol"} {
 			if strings.HasPrefix(pkg, heavy) {
 				t.Errorf("the library packages depend on %s, which only the CLI should link", pkg)
 			}

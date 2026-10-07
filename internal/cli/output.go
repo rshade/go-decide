@@ -4,7 +4,7 @@ import "github.com/rshade/go-decide/decision"
 
 // SchemaVersion is the version of the JSON shape of every command's output.
 // Any change to a shape needs a new version and a new golden file.
-const SchemaVersion = 4
+const SchemaVersion = 5
 
 // ThresholdsOutput echoes the thresholds a run used.
 type ThresholdsOutput struct {

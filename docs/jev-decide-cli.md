@@ -157,6 +157,60 @@ written. `--dry-run` validates both files and prints `backend`, `decisions`,
 The bundled set is 40 synthetic, constraint-shaped decisions. Treat it as a
 smoke test. Tuning the thresholds needs past decisions with known outcomes.
 
+## MCP server
+
+`go-decide mcp-server` serves the commands to agents as Model Context Protocol
+tools, so an agent can call them without a shell. It serves `go-decide-ask` and
+`go-decide-score`; each takes the command's flags as inputs, including
+`backend` and `dry-run`. `eval` is not served, because one call sends one paid
+request per decision. It stays on the command line.
+
+An `uncertain` or `escalate` outcome is a normal result: the payload is the
+usual envelope, with `outcome` saying which, and the call is not flagged as an
+error. The exit codes 10 and 11 belong to the command line and do not exist
+here. A failure (invalid input, a missing credential, a backend error) is
+returned as the error envelope and flagged as an error, and invalid input is
+caught before any request is sent. Whatever a call returns, the server's own
+exit code is 0 after a normal shutdown, or 1 to 4 when it cannot run, for
+example 2 when it refuses to bind a non-loopback address.
+
+It reads credentials from its own environment, as the command line does. No
+tool input takes a credential, and none appears in a result or a log. A run
+uses one backend, with no fallback to the other. A `decided` outcome still
+means clear enough to skip the debate, not approved.
+
+```sh
+go-decide mcp-server                                  # stdio, the default
+go-decide mcp-server --transport http --addr 127.0.0.1:8080
+```
+
+HTTP binds loopback by default and refuses another address unless
+`--allow-non-loopback` is given. There is no authentication, so put one in
+front of any endpoint that is not loopback. The tools cannot read a decision
+spec from standard input, because that is the protocol channel: pass the spec
+as a file or give the fields inline.
+
+Every `go-decide-ask` and `go-decide-score` call is a paid request. Pass
+`dry-run` to validate an input without spending anything. The server reports
+its version in the handshake: the one stamped at release, the module version
+of a `go install`, or a pseudo-version for a local build.
+
+A client configuration, for a client that uses the common `mcpServers` shape:
+
+```json
+{
+  "mcpServers": {
+    "go-decide": {
+      "command": "go-decide",
+      "args": ["mcp-server"],
+      "env": {
+        "TYPESAFE_API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
 ## Exit codes
 
 | Code | Meaning |
@@ -175,8 +229,9 @@ are left free.
 
 ## Output version
 
-`schema_version` is 4. Version 2 added `eval`. Version 3 renamed the tool to
-`go-decide`. Version 4 added `backend` to every output; nothing else moved.
+`schema_version` is 5. Version 2 added `eval`. Version 3 renamed the tool to
+`go-decide`. Version 4 added `backend` to every output. Version 5 added the
+`mcp-server` command to `__schema`; nothing else moved.
 `go-decide __schema` prints that integer as its top-level `schema_version`,
 with `tool` set to `go-decide`.
 `schema_version` pins those shapes, one golden file per version under
