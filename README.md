@@ -194,6 +194,23 @@ as the CLI from its environment and never takes one as a tool input. HTTP is
 available with `--transport http` and stays on loopback unless you opt out.
 See [docs/jev-decide-cli.md](docs/jev-decide-cli.md#mcp-server) for details.
 
+## Pre-screen a debate
+
+The `decide` skill in [`skills/decide/`](skills/decide/SKILL.md) can ask
+`go-decide` before it spends a three-agent debate. After it frames the
+options, it calls `ask` (or the MCP tool `go-decide-ask`) and reads
+`data.outcome`.
+
+- `decided` skips the debate. That means the choice is clear enough to
+  skip a second look, not that it is approved. The user still decides.
+- `uncertain` asks a person whether to stop or to run the debate. The
+  leading option is not a choice.
+- `escalate` runs the debate. Its leading option is not a choice either.
+- A failed call is an error. The skill does not treat it as escalate.
+
+The pre-screen is skipped when `go-decide` is absent or the user asks for
+the full debate. The skill file is `skills/decide/SKILL.md`.
+
 ## Know the limits
 
 - **Decided does not mean approved.** The model ranks options well but its

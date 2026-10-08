@@ -13,7 +13,8 @@ do not rename it. `gojev` is taken upstream (`taigrr/gojev`, `wawan93/gojev`).
 Read `CONTEXT.md` before designing anything. Its "Hard No's" and verification
 list are the review bar: no auto-approval, no silent zero values, no bare-float
 probabilities, no API spend before validation, no schema change without a
-version bump, and no debate logic (that stays in the `decide` skill).
+version bump, and no debate logic in Go (the debate stays in the `decide`
+skill prompt).
 `ROADMAP.md` maps work to GitHub issues in `rshade/go-decide`.
 
 ## Commands
@@ -104,6 +105,12 @@ before any request, on a dry run too. `decision.WithClassifier` makes `Choose`
 and `Rate` classify failures with the backend's `Classify` (default
 `jevclient.Classify`); the CLI passes it.
 `Env.NewClefClient` is the injectable constructor for clef.
+
+`skills/decide/` is the product `decide` skill (separate from
+`.agents/skills/`, which is repo workflow tooling). Its optional
+pre-screen calls `ask` or the MCP tool `go-decide-ask` and branches on
+`decided`, `uncertain` and `escalate`. A decided result skips the debate
+and is not approval. The debate itself stays in that prompt.
 
 ### Output schema versioning
 
