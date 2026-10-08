@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/kataras/jev v0.1.0
-	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/rshade/ax-go v0.7.0
 	github.com/spf13/cobra v1.10.2
 )
