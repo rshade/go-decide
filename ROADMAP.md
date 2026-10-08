@@ -42,7 +42,11 @@ the Clef spike verdict (#18) and keeps the placeholder thresholds.
 
 ## Future Vision (Long-Term)
 
-- [ ] #7 Fast-path pre-screen for the decide skill [M]
+- [x] #7 Fast-path pre-screen for the decide skill [M]
+  Implemented in `skills/decide/`: after the decision is framed, the skill
+  calls `ask` (or the MCP tool `go-decide-ask`) and branches on decided,
+  uncertain and escalate. A decided result skips the debate and is not
+  approval. Thresholds stay the placeholders until #6.
 - [ ] #8 Batching and pseudonymized identifiers [M]
 - [ ] #9 Spike: does the fast path hold on real past decisions? (timebox 1d)
 

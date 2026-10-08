@@ -449,8 +449,10 @@ precision/recall, and keep scores described as ranking signals unless
 ### JD-5.3: Fast-path pre-screen for the decide skill
 
 **Related Issues:** [#7](https://github.com/rshade/go-decide/issues/7).
-Blocked by JD-5.1 and JD-5.2. The debate stays in the skill; this repo
-supplies the pre-screen and its typed result.
+The skill in `skills/decide/` calls `ask` and branches on decided,
+uncertain and escalate. It landed without waiting for JD-5.1 and
+JD-5.2. The thresholds stay placeholders, and a decided result is not
+approval. The debate stays in the skill prompt.
 
 ### JD-5.4: Batching and pseudonymized identifiers
 
@@ -480,9 +482,11 @@ paid calls). `mcp-server` appears in `__schema`, so share #19's `SchemaVersion`
 
 **Related Issues:** [#22](https://github.com/rshade/go-decide/issues/22).
 First decide the source of truth: move it here from `rshade/agent-skills`
-(recommended), or vendor a copy. Ships unchanged
-in `skills/decide/`; the pre-screen step is #7. CONTEXT.md's "no debate
-protocol" Hard No is reworded on purpose: no debate logic in Go.
+(recommended), or vendor a copy. The skill file landed with #7, with
+the pre-screen already in it, so it is not byte-identical to upstream.
+What remains is that source-of-truth move outside this repo.
+CONTEXT.md's Hard No now says the debate is the prompt in
+`skills/decide/` and that Go still has none.
 
 ## Issue Index (all ROADMAP issues)
 
@@ -494,7 +498,7 @@ protocol" Hard No is reworded on purpose: no debate logic in Go.
 | [#4](https://github.com/rshade/go-decide/issues/4) | ask and score commands with versioned JSON schemas | closed | | done | JD-0.1 |
 | [#5](https://github.com/rshade/go-decide/issues/5) | eval command for confidence separation and calibration | closed 2026-10-02 | roadmap/next | done (unpromoted pick) | JD-0.2 |
 | [#6](https://github.com/rshade/go-decide/issues/6) | tune confidence threshold on real decisions | open | roadmap/next, effort/medium | Tier B | JD-5.2 |
-| [#7](https://github.com/rshade/go-decide/issues/7) | fast-path pre-screen for the decide skill | open | roadmap/future, effort/medium | Tier B | JD-5.3 |
+| [#7](https://github.com/rshade/go-decide/issues/7) | fast-path pre-screen for the decide skill | implemented, open until merge | roadmap/future, effort/medium | Tier B | JD-5.3 |
 | [#8](https://github.com/rshade/go-decide/issues/8) | batching and pseudonymized identifiers | open | roadmap/future, effort/medium | Tier B | JD-5.4 |
 | [#9](https://github.com/rshade/go-decide/issues/9) | spike: does the fast path hold on real past decisions? | open | roadmap/future, spike, timebox/1d | Tier B; body cites a stale `.specify/` path | JD-1.4, JD-5.1 |
 | [#10](https://github.com/rshade/go-decide/issues/10) | spike: FinFocus scoring belongs in finfocus repos | closed 2026-09-30 | | done | none |

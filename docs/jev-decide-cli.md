@@ -5,6 +5,9 @@
 outcome is one to act on. `eval` measures how well confidence separates clear
 decisions from contested ones on a labelled set.
 
+The `decide` skill in `skills/decide/` calls `ask` as an optional
+pre-screen and branches on `data.outcome`.
+
 ## Commands
 
 ```sh

@@ -21,8 +21,10 @@ ships `ask`, `score` and `eval`.
 
 ## Technical Boundaries ("Hard No's")
 
-- **No debate protocol.** Multi-agent adversarial debate stays in the
-  `decide` skill. `go-decide` only supplies a fast-path pre-screen.
+- **No debate protocol in Go.** The three-agent debate ships as an agent
+  prompt in `skills/decide/`. The library and CLI supply the fast-path
+  pre-screen (`ask`) and its typed result, and they hold no debate,
+  persistence or orchestration logic.
 - **No auto-approval.** Jev ranks well but is not calibrated (Brier 0.236),
   and clef separates contested decisions less sharply.
   Output must never authorize an action without a human or a higher-cost
@@ -71,7 +73,8 @@ ships `ask`, `score` and `eval`.
 - **Inbound:** CLI commands (`ask`, `score` and `eval`), the same `ask` and
   `score` as MCP tools through `mcp-server`,
   and a Go library API (`Choose[T ~string]`, `Rate` and typed option sets).
-  Input is a decision spec validated before use.
+  Input is a decision spec validated before use. The `decide` skill in
+  `skills/decide/` calls `ask` as an optional pre-screen.
 - **Outbound:** for Jev, HTTPS `POST /v1/systemone` with bearer auth, through
   `kataras/jev` (pinned) built only by `jevclient.NewClient`. `GET /v1/models`
   is the only other endpoint. For clef, HTTPS `POST
@@ -91,8 +94,8 @@ A proposed feature violates the boundaries if it:
 1. Lets a caller act on a Jev answer without handling the uncertain and
    escalate cases.
 2. Spends API budget before validating input.
-3. Adds debate, persistence or orchestration logic that belongs in the
-   `decide` skill.
+3. Adds debate, persistence or orchestration logic to the Go library or
+   CLI. The prompt in `skills/decide/` is where that logic belongs.
 4. Embeds a credential or an endpoint other than TypeSafe's or Cloudflare's.
 5. Changes an output schema without a version bump and golden test update.
 6. Falls back from one backend to the other.
