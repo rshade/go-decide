@@ -1,6 +1,6 @@
 [tools]
 # Keep in sync with the `go` directive in go.mod.
-go = "1.27.1"
+go = "1.27.2"
 # Runs the npm tools below. Pinned so CI and local runs match.
 node = "24.21.0"
 # CI installs this pin. 2.14.0 matches the finfocus plugins.
