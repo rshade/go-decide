@@ -26,10 +26,15 @@ If neither exists, argue without them.
   instructions is the one-line question, options or levels are yours.
 - Use the backend the user named, or the default. Never retry a
   failure against the other backend, and never pass a credential.
-- Cite a result as evidence, never as the verdict:
-  [go-decide: backend, outcome, choice or leading option, confidence
-  as a ranking score]. A result that favours your position is one
-  argument for it, not a win.
+- Cite a result as evidence, never as the verdict, and show what you
+  asked, so a reader can see which positions your question left out:
+    [go-decide: backend, outcome
+     asked: the instructions you sent, verbatim
+     options: every option or level you sent, each with its
+       probability from the result
+     result: choice or leading option, confidence as a ranking score]
+  A result that favours your position is one argument for it, not a
+  win.
 - confidence ranks options. It is not a probability, and it can
   change between identical calls. "leading" is not a choice.
 - A failed call is not an outcome. Say it failed and argue without

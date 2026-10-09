@@ -125,9 +125,13 @@
   - Full debate on per-seat or usage pricing, informed mode: six agents,
     ten go-decide calls, at most two per agent per round. The results named
     the mode and the call count, and the consensus rested on the arguments.
-    Agents could steer outcomes by leaving rival options out of their own
-    questions (a hybrid was decided at 1.0 when per-seat was omitted; the
-    neutral three-option question escalated at 0.46).
+    Agents framed questions for their own side: the usage advocate left
+    per-seat out and got decided (0.95), and the revised usage advocate
+    described its own option in most detail and got decided (0.99), while
+    the moderator's evenly worded Round 2 question escalated (0.46). The
+    citation now carries the instructions sent and every option or level
+    with its probability, so a reader sees the framing; the framing itself
+    stays free.
 
 ## Workflow follow-up
 
