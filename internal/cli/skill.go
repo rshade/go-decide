@@ -88,11 +88,16 @@ func declareSkill(root *cobra.Command) (string, error) {
 }
 
 // serverInstructions sits in every connected agent's context, so it carries
-// the skill's own description and a pointer, never the skill itself. The last
+// a pointer and the skill's own description, never the skill itself. The
+// pointer comes first and names the shapes a choice arrives in: in Claude Code
+// trials, a pointer after the description, without those shapes, was skipped
+// for "should we X or Y" and "thoughts on switching" questions. The last
 // sentence is about this server's tools, which the skill does not describe.
 func serverInstructions(front skillFrontmatter) string {
-	return "This server ships the " + front.Name + " skill. " + front.Description + "\n\n" +
-		"When the user asks you to choose between alternatives, do not answer from your own judgment first: read the MCP resource " + skillURI + " and follow it. " +
+	return "When the user is weighing options, including \"should we X or Y\", \"is it worth adopting X\", \"help me pick\" and \"thoughts on switching to X\", " +
+		"do not answer from your own judgment first: read the MCP resource " + skillURI + " and follow it. " +
+		"It settles a clear choice with one pre-screen call and debates only an unclear one." +
+		"\n\nThe " + front.Name + " skill: " + front.Description + "\n\n" +
 		"Every go-decide-ask and go-decide-score call is a paid request, and a decided outcome is not approval."
 }
 

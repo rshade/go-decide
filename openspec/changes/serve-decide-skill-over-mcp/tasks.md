@@ -100,6 +100,21 @@
   score not a probability, then asked stop-or-debate and blind-or-informed.
   The `@` mention still needs an interactive session.
 
+  Tuning (same setup, `--max-turns 3`, trigger means the model read
+  `SKILL.md`): six plain choices and three controls (easy), six implicit
+  choices and three near-miss controls (hard), and reruns of the misses.
+
+  | Wording | Choices triggered | Controls triggered |
+  | --- | --- | --- |
+  | v1: description, then directive pointer | 24/32 | 0/9 |
+  | v2: v1 plus the shapes a choice arrives in | 11/12 | 0/6 |
+  | v3: v2 with the pointer first (shipped) | 29/30 | 0/9 |
+  | v4: v3 plus "technical or strategic" | 8/8 | 0/6 |
+
+  v1 missed "split the suite or bigger runners" and "thoughts on switching
+  docs to Starlight" in 8 of 12 tries; v3 caught both 12 of 12. v4 gained
+  nothing measurable over v3, so the shorter v3 shipped.
+
 ## Workflow follow-up
 
 - Before pushing: move ax-go from the pseudo-version to `v0.9.0` once

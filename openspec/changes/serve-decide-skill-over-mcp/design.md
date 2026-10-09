@@ -69,13 +69,18 @@ All resources are declared on the root command, which is never hidden.
 ### Instructions come from the skill; the resource teaches
 
 The instructions are built from `SKILL.md`'s frontmatter, parsed with
-`go.yaml.in/yaml/v3`: the skill's `description` (which already says when to
-use it), a sentence pointing at `go-decide://skills/decide/SKILL.md`, and one
-sentence about this server's tools that the skill does not carry: every
-`ask` and `score` call is a paid request and a decided outcome is not
-approval. The same `description` describes the `SKILL.md` resource and the
-`decide` prompt. They stay far under 8 KiB. The skill text stays in the
-resource, because instructions sit in every session's context and the skill
+`go.yaml.in/yaml/v3`. They open with a directive pointer that names the
+shapes a choice arrives in ("should we X or Y", "is it worth adopting X",
+"help me pick", "thoughts on switching to X"), tells the agent not to answer
+from its own judgment first, and points at
+`go-decide://skills/decide/SKILL.md`. Then come the skill's `description`
+(which already says when to use it) and one sentence about this server's
+tools that the skill does not carry: every `ask` and `score` call is a paid
+request and a decided outcome is not approval. The wording was tuned in
+Claude Code trials, recorded under task 5.2. The same `description`
+describes the `SKILL.md` resource and the `decide` prompt. They stay far
+under 8 KiB. The skill text stays in the resource, because instructions sit
+in every session's context and the skill
 is 10 KB.
 
 - *Alternative: a hand-written Go constant.* It restates the description and
