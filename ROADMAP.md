@@ -16,44 +16,45 @@ The task breakdown for v0.1.0 is in [TASKS.md](TASKS.md).
 
 ## Immediate Focus (v0.1.0)
 
-Ship the current feature set safely under its final name. v0.1.0 waits for
-the Clef spike verdict (#18) and keeps the placeholder thresholds.
+v0.1.0 work is complete: the Clef spike (#18) is decided, and the placeholder
+thresholds stay until #6.
 
-- [ ] #16 Put the root probes behind a `probe` build tag [S]
-- [ ] #17 Make markdownlint clean across the repo [S]
-- [ ] #12 Cover key redaction on retry and failure log lines [S]
-- [ ] #13 Document the logging policy in the `jevclient` package doc [S]
-- [ ] #18 Spike: is Clef a drop-in System One provider? (timebox 1d)
-  *Spike promoted 2026-10-06 - timebox timebox/1d; decide by 2026-10-07*
-  Implemented as the OpenSpec change `add-clef-backend` (a `clefclient`
-  package and `--backend clef`); see `docs/clef-2026-10-06.md`.
-- [ ] #19 Rename the module, binary and repo to `go-decide` [M]
-- [ ] #20 CI and release pipeline for v0.1.0 [L]
-  (release-please and GoReleaser landed in `8223de5`; CI, docs and the
-  release remain)
+*No active items. Next candidates are in Near-Term Vision.*
 
 ## Near-Term Vision (v0.2.0)
 
 - [ ] #6 Tune confidence threshold on real decisions [M]
   (thresholds are placeholders until then; needs #9's real decisions)
-- [x] #21 Serve the commands as MCP tools with `ax-go`'s `mcp-server` [M]
-  Implemented as the OpenSpec change `add-mcp-server`; `eval` is not a tool.
-- [ ] #22 Ship the `decide` skill in this repository [S]
+- [x] #22 Ship the `decide` skill in this repository and serve it over MCP [L]
+  Implemented as the OpenSpec change `serve-decide-skill-over-mcp` on ax-go
+  v0.9.0: `mcp-server` serves the skill as resources, a `decide` prompt and
+  instructions, and debate agents may cite go-decide as capped evidence.
+- [ ] #40 Record decisions at decision time for later outcome labelling [M]
+  (the corpus #9 needs; the `decide` skill writes the log)
+- [ ] #47 Confirm the `@` mention and `decide` prompt in interactive Claude
+  Code [S]
 
 ## Future Vision (Long-Term)
 
-- [x] #7 Fast-path pre-screen for the decide skill [M]
-  Implemented in `skills/decide/`: after the decision is framed, the skill
-  calls `ask` (or the MCP tool `go-decide-ask`) and branches on decided,
-  uncertain and escalate. A decided result skips the debate and is not
-  approval. Thresholds stay the placeholders until #6.
 - [ ] #8 Batching and pseudonymized identifiers [M]
 - [ ] #9 Spike: does the fast path hold on real past decisions? (timebox 1d)
+  *Parked 2026-10-07: needs 20+ outcome-labelled records from the #40
+  decision log. Past design docs leak their answers. Gates #6.*
+- [ ] #48 Repeatable trigger-rate check for the server instructions [M]
 
 ## Completed Milestones
 
 ### 2026-Q4
 
+- [x] #7 `skill`: fast-path pre-screen with ask. Closed 2026-10-09. [M]
+- [x] #21 `cli`: serve ask and score as MCP tools. Closed 2026-10-07. [M]
+- [x] #20 `ci`: CI and release pipeline for v0.1.0. Closed 2026-10-07. [L]
+- [x] #19 `repo`: rename to go-decide. Closed 2026-10-07. [M]
+- [x] #18 `spike`: Clef as a System One provider. Closed 2026-10-07.
+- [x] #17 `docs`: markdownlint clean across the repo. Closed 2026-10-07. [S]
+- [x] #16 `test`: root probes behind the `probe` build tag. Closed 2026-10-07. [S]
+- [x] #13 `jevclient`: document the logging policy. Closed 2026-10-07. [S]
+- [x] #12 `jevclient`: cover key redaction in retry logs. Closed 2026-10-07. [S]
 - [x] #5 `eval`: eval command, metrics, response cache. Closed 2026-10-02. [M]
 - [x] #4 `cli`: ask and score commands, versioned JSON. Closed 2026-10-01. [M]
 

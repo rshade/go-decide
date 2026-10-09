@@ -199,6 +199,24 @@ Every `go-decide-ask` and `go-decide-score` call is a paid request. Pass
 its version in the handshake: the one stamped at release, the module version
 of a `go install`, or a pseudo-version for a local build.
 
+The server also carries the `decide` skill, so an agent can use it without
+installing anything:
+
+- **Instructions.** The handshake carries a few sentences that tell the agent
+  when to read the skill, and that every tool call is paid.
+- **Resources.** Each file in `skills/decide/` is served as a `text/markdown`
+  resource at a URI that mirrors its path:
+  `go-decide://skills/decide/SKILL.md` and
+  `go-decide://skills/decide/references/debate-prompts.md`. The skill's
+  relative `references/` paths resolve against the `SKILL.md` URI. The content
+  is the file the binary was built from.
+- **A `decide` prompt.** It takes one required argument, `decision`, and
+  renders a short message that points at the skill resource. In Claude Code it
+  is the `/mcp__go-decide__decide` slash command.
+
+None of these sends a request or needs a credential. `__schema` lists the
+prompt and the resources by name and URI, never the resource content.
+
 A client configuration, for a client that uses the common `mcpServers` shape:
 
 ```json
@@ -233,9 +251,12 @@ are left free.
 
 ## Output version
 
-`schema_version` is 5. Version 2 added `eval`. Version 3 renamed the tool to
+`schema_version` is 6. Version 2 added `eval`. Version 3 renamed the tool to
 `go-decide`. Version 4 added `backend` to every output. Version 5 added the
-`mcp-server` command to `__schema`; nothing else moved.
+`mcp-server` command to `__schema`; nothing else moved. Version 6 added the
+`decide` prompt and the skill resources to `__schema`, along with the
+`--strict` flag and the `warnings_as_errors` error code from `ax-go`. The
+`ask`, `score` and `eval` outputs did not change.
 `go-decide __schema` prints that integer as its top-level `schema_version`,
 with `tool` set to `go-decide`.
 `schema_version` pins those shapes, one golden file per version under

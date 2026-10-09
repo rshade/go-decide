@@ -11,7 +11,8 @@ compatibility: >
   The debate needs an agent that can spawn parallel sub-agents and
   research the web. The optional pre-screen calls go-decide ask, or
   the MCP tool go-decide-ask, and skips itself when that tool is
-  absent.
+  absent. Debate agents may call go-decide as capped evidence when it
+  is available.
 ---
 <!-- Copyright 2025-2026 Richard Shade. Licensed under Apache-2.0. -->
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -87,7 +88,11 @@ Decision: [one-line summary]
 Position A: [name] — [one-sentence description]
 Position B: [name] — [one-sentence description]
 Constraints: [list any hard constraints]
+Model evidence: [blind | informed | not named yet]
 ```
+
+Include the `Model evidence` line only when go-decide is available.
+See "go-decide during the debate" below.
 
 If any condition fails, present the brief and ask the user whether to
 reframe or proceed as-is. Proceeding as-is runs the pre-screen too.
@@ -172,6 +177,56 @@ calls. The default floor of 0.5 and confident level of 0.9 are
 placeholders. On the synthetic probe, some decided answers were not
 safe to fast-path. Say that when you present a decided result.
 
+## go-decide during the debate
+
+This section applies only when the MCP tools `go-decide-ask` and
+`go-decide-score`, or the `go-decide` binary, are available. Without
+them, leave go-decide out of every agent prompt and run the debate as
+written.
+
+### Choose the model evidence mode
+
+Whether agents argue better with the model's answer in front of them,
+or without it, is an open question. Each run uses one mode and reports
+it. Do not pick one yourself.
+
+- **blind**: no Round 1 agent prompt contains the pre-screen result,
+  and no agent calls go-decide in Round 1. Agents may call it from
+  Round 2.
+- **informed**: the Round 1 prompts contain the pre-screen result, and
+  agents may call go-decide from Round 1.
+
+Use the mode the user named. If they named none, ask once the debate
+is going to run, before Round 1: after an escalate, or when the user
+chose the debate after an uncertain result or a skipped pre-screen.
+Do not ask when the pre-screen decided and the debate is skipped.
+
+### Rules for agents that call go-decide
+
+Give each agent the go-decide block from `references/debate-prompts.md`
+when its mode and round allow calls. The block carries these rules:
+
+- **At most two calls per agent per round**, `ask` and `score`
+  together. Every call is a paid request.
+- **No calls when the user asked for no spend.** A dry run has no
+  outcome, so it is not evidence.
+- **Evidence, never the verdict.** Cite a result with its backend and
+  outcome. A result that favours a position is one argument for it.
+  The Moderator's consensus rests on the arguments, not on a model
+  answer.
+- **Show what was asked.** Agents frame their own questions, and an
+  advocate may frame one for its side. The citation carries the
+  instructions sent and every option or level with its probability,
+  so a reader can see when a question left a debated position out.
+  Keep these details when you summarize a paper for Round 2.
+- **Read the result honestly.** `confidence` is a ranking score, never
+  a probability, and it can change between identical calls. `leading`
+  is the leading option, never a choice.
+- **A failure is not an outcome.** Report it and argue without it. Do
+  not retry against the other backend, and never pass a credential.
+- **Prefer the MCP tool**, then the binary. An agent that has neither
+  argues without go-decide.
+
 ## Phase 1: Round 1 — position papers
 
 Tell the user you are launching Round 1, then launch **three agents
@@ -191,7 +246,9 @@ others' output.
   a preliminary recommendation.
 
 Compose agent prompts following
-`references/debate-prompts.md` — Round 1 section.
+`references/debate-prompts.md` — Round 1 section. In `informed` mode,
+add the pre-screen result and the go-decide block. In `blind` mode,
+add neither.
 
 ### Synthesize Round 1
 
@@ -220,7 +277,8 @@ of the other agents' arguments and must respond.
   one-paragraph elevator pitch.
 
 Compose agent prompts following
-`references/debate-prompts.md` — Round 2 section.
+`references/debate-prompts.md` — Round 2 section. Add the go-decide
+block in either mode when go-decide is available.
 
 ## Phase 3: Present results
 
@@ -233,6 +291,8 @@ Show the user:
 3. Structure or plan details (tiers, architecture, timeline)
 4. Key metrics to track
 5. Biggest risk and mitigation
+6. The model evidence mode (`blind` or `informed`) and how many
+   go-decide calls the agents made, when go-decide was available
 
 ### Step 3.2: Ask about persistence
 
@@ -250,6 +310,8 @@ appropriate file based on the decision type:
 - **Run the pre-screen before Phase 1** when `go-decide` is available
   and the user did not ask for the full debate. Branch on
   `data.outcome`. A failure is not an escalate.
+- **Never choose the model evidence mode yourself.** Use the one the
+  user named, or ask before Round 1. Report it with the results.
 - **Always launch all 3 agents per round in a single step** (parallel)
 - **Never edit the agents' arguments** — present them faithfully
 - **The Moderator's Round 2 consensus is the binding output** — but

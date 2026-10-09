@@ -24,7 +24,8 @@ ships `ask`, `score` and `eval`.
 - **No debate protocol in Go.** The three-agent debate ships as an agent
   prompt in `skills/decide/`. The library and CLI supply the fast-path
   pre-screen (`ask`) and its typed result, and they hold no debate,
-  persistence or orchestration logic.
+  persistence or orchestration logic. `mcp-server` serves the skill's files
+  as text resources; serving a prompt is not running it.
 - **No auto-approval.** Jev ranks well but is not calibrated (Brier 0.236),
   and clef separates contested decisions less sharply.
   Output must never authorize an action without a human or a higher-cost
