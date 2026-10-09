@@ -69,6 +69,13 @@ output fields that vary between identical calls as non-deterministic.
 - **THEN** it also lists `mcp-server`, and golden files for version 5 exist
   for every output with the version 4 files unchanged
 
+#### Scenario: Schema lists the served skill
+
+- **WHEN** `__schema` and `__schema --as=mcp` are run at schema version 6
+- **THEN** they list the `decide` prompt and the skill resources by metadata
+  only, never the resource content, and golden files for version 6 exist for
+  every output with the version 5 files unchanged
+
 ### Requirement: A dry run validates without asking
 
 The system SHALL honor the shared `--dry-run` flag on `ask`, `score` and `eval`

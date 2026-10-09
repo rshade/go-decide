@@ -77,11 +77,13 @@
   `go test -race ./...`, `golangci-lint run ./...`,
   `mise exec -- markdownlint-cli2 "**/*.md"` and
   `mise exec -- openspec validate --all --strict`. Verify all pass.
-- [ ] 5.2 Manual check in Claude Code with this build registered as an MCP
+- [x] 5.2 Manual check in Claude Code with this build registered as an MCP
   server: the instructions reach the session, `/mcp__go-decide__decide`
   renders, an `@` mention attaches the skill, and the model reads the skill
   resource on its own for a strategic choice with no `@` mention. Record the
   Claude Code version and the steps for the pull request and rshade/ax-go#270.
+  The `@` mention needs an interactive session and moved to #47. The results
+  are recorded on rshade/ax-go#270.
 
   Results so far (Claude Code 2.1.295, `claude -p` from an empty directory,
   `--strict-mcp-config`, Skill tool disabled, one run per row):
@@ -113,7 +115,8 @@
 
   v1 missed "split the suite or bigger runners" and "thoughts on switching
   docs to Starlight" in 8 of 12 tries; v3 caught both 12 of 12. v4 gained
-  nothing measurable over v3, so the shorter v3 shipped.
+  nothing measurable over v3, so the shorter v3 shipped. #48 makes this
+  check repeatable.
 
   End to end with v3 (`.env` loaded, Jev backend):
 
@@ -135,10 +138,14 @@
 
 ## Workflow follow-up
 
-- Before pushing: move ax-go from the pseudo-version to `v0.9.0` once
+- [x] Before pushing: move ax-go from the pseudo-version to `v0.9.0` once
   rshade/ax-go#279 merges and the tag exists, run `go mod tidy`, and re-run
   5.1. `go.mod` must not name a pseudo-version.
-- Rebase onto `main` once #41 merges, and drop its commit from this branch.
-- Remove `spec-first` from #22, and update `ROADMAP.md`'s #22 line.
-- Run `openspec-verify-change`, then archive the change in the same commit as
-  the code.
+- [x] Rebase onto `main` once #41 merges, and drop its commit from this
+  branch.
+- [x] Remove `spec-first` from #22, and update `ROADMAP.md`'s #22 line.
+- [x] Run `openspec-verify-change`, then archive the change in the same pull
+  request as the code.
+- Follow-ups: #47 (`@` mention), #48 (trigger-rate check), rshade/ax-go#298
+  (stdin EOF drops a response). The framing results are on #6. The fields the
+  anchoring and cap questions need are on #40.
