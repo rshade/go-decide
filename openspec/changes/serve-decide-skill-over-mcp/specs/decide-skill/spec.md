@@ -30,7 +30,10 @@ during the debate. Without them, the debate SHALL run unchanged.
 The skill SHALL require an agent that cites a go-decide result to cite it as
 one piece of evidence with its backend and outcome, and SHALL NOT let it decide
 the debate. `confidence` SHALL be described as a ranking score, never as a
-probability, and a `leading` option SHALL never be called a choice.
+probability, and a `leading` option SHALL never be called a choice. Agents
+frame their own questions, so the citation SHALL also carry the instructions
+sent and every option or level sent, each with its probability from the
+result.
 
 #### Scenario: Cited result
 
@@ -38,6 +41,13 @@ probability, and a `leading` option SHALL never be called a choice.
 - **THEN** the citation names the backend and the outcome, calls `confidence`
   a ranking score, and the moderator's consensus rests on the arguments, not on
   that result
+
+#### Scenario: One-sided question
+
+- **WHEN** an advocate asks a question whose options leave out a debated
+  position
+- **THEN** the advocate may still cite the result, and the citation lists the
+  options it sent, so a reader can see the position was not on offer
 
 #### Scenario: Failed call
 

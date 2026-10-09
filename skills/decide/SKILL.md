@@ -214,6 +214,11 @@ when its mode and round allow calls. The block carries these rules:
   outcome. A result that favours a position is one argument for it.
   The Moderator's consensus rests on the arguments, not on a model
   answer.
+- **Show what was asked.** Agents frame their own questions, and an
+  advocate may frame one for its side. The citation carries the
+  instructions sent and every option or level with its probability,
+  so a reader can see when a question left a debated position out.
+  Keep these details when you summarize a paper for Round 2.
 - **Read the result honestly.** `confidence` is a ranking score, never
   a probability, and it can change between identical calls. `leading`
   is the leading option, never a choice.

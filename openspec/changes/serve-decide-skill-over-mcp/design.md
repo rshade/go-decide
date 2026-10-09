@@ -105,7 +105,11 @@ short.
 `SKILL.md` gains a short section on go-decide during the debate, and
 `references/debate-prompts.md` gains a block each agent prompt includes when
 the tools are available: how to call, how to cite (backend, outcome,
-`confidence` as a ranking score), what a failure means, and the cap. Two
+`confidence` as a ranking score), what a failure means, and the cap. The
+citation also carries the instructions sent and every option or level with
+its probability. Advocates frame questions for their own side by design, and
+the trial debate showed a question that left out the rival position returning
+decided at 0.95. The rule exposes the framing instead of forbidding it. Two
 calls per agent per round bounds a full debate at twelve paid calls. Like
 the thresholds, two is a placeholder until runs show what agents use.
 
