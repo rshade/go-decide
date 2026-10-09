@@ -115,6 +115,20 @@
   docs to Starlight" in 8 of 12 tries; v3 caught both 12 of 12. v4 gained
   nothing measurable over v3, so the shorter v3 shipped.
 
+  End to end with v3 (`.env` loaded, Jev backend):
+
+  - Rails or a Go rewrite: the model read `SKILL.md`, resolved and read
+    `references/debate-prompts.md` itself, and the pre-screen returned
+    decided (`keep_rails`, 1.0). The debate was skipped, with the caveats.
+    The same question had returned uncertain (0.76) in run 4 under a
+    different framing.
+  - Full debate on per-seat or usage pricing, informed mode: six agents,
+    ten go-decide calls, at most two per agent per round. The results named
+    the mode and the call count, and the consensus rested on the arguments.
+    Agents could steer outcomes by leaving rival options out of their own
+    questions (a hybrid was decided at 1.0 when per-seat was omitted; the
+    neutral three-option question escalated at 0.46).
+
 ## Workflow follow-up
 
 - Before pushing: move ax-go from the pseudo-version to `v0.9.0` once
