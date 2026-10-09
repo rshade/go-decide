@@ -6,7 +6,7 @@ node = "24.21.0"
 # CI installs this pin. 2.14.0 matches the finfocus plugins.
 golangci-lint = "2.14.0"
 # Release binary building, used by .github/workflows/release.yml.
-goreleaser = "2.18.2"
+goreleaser = "2.18.3"
 "npm:@fission-ai/openspec" = "1.14.1"
 "npm:markdownlint-cli2" = "0.23.3"
 "npm:@commitlint/cli" = "21.2.3"
