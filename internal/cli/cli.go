@@ -69,7 +69,12 @@ func (e Env) withDefaults() Env {
 func Run(ctx context.Context, args []string, env Env) int {
 	env = env.withDefaults()
 	var outcome outcomeRecorder
-	root := newRoot(env, &outcome)
+	root, err := newRoot(env, &outcome)
+	if err != nil {
+		_ = ax.WriteError(env.Stderr, ax.NewError(ctx, "internal_error", err.Error(),
+			ax.WithErrorExitCode(ax.ExitInternal)))
+		return ax.ExitInternal
+	}
 	root.SetArgs(args)
 	serving := isMCPServer(root, args)
 
@@ -94,7 +99,7 @@ func isMCPServer(root *cobra.Command, args []string) bool {
 	return err == nil && cmd.Name() == mcpServerName
 }
 
-func newRoot(env Env, outcome *outcomeRecorder) *cobra.Command {
+func newRoot(env Env, outcome *outcomeRecorder) (*cobra.Command, error) {
 	root := &cobra.Command{
 		Use:     "go-decide",
 		Version: env.Version,
@@ -107,10 +112,14 @@ func newRoot(env Env, outcome *outcomeRecorder) *cobra.Command {
 	}
 	// Print only the release version, so --version matches the ldflags value.
 	root.SetVersionTemplate("{{.Version}}\n")
+	instructions, err := declareSkill(root)
+	if err != nil {
+		return nil, err
+	}
 	var serving atomic.Bool
 	eval := newEvalCommand(env)
 	mcp.Exclude(eval)
-	server := mcp.NewCommand(root, mcp.WithVersion(env.Version))
+	server := mcp.NewCommand(root, mcp.WithVersion(env.Version), mcp.WithInstructions(instructions))
 	serve := server.RunE
 	server.RunE = func(cmd *cobra.Command, args []string) error {
 		serving.Store(true)
@@ -123,5 +132,5 @@ func newRoot(env Env, outcome *outcomeRecorder) *cobra.Command {
 		newSchemaCommand(root),
 		server,
 	)
-	return root
+	return root, nil
 }
