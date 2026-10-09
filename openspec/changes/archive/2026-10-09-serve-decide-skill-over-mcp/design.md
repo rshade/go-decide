@@ -2,8 +2,8 @@
 
 ## Context
 
-Pull request #41 (`issue-7`) moves the `decide` skill into `skills/decide/`
-and adds the pre-screen. This change is stacked on it.
+Pull request #41 (merged) moved the `decide` skill into `skills/decide/` and
+added the pre-screen. This change builds on it.
 `go-decide mcp-server` is ax-go's `mcp.NewCommand`, mounted in `newRoot`
 (`internal/cli/cli.go`). ax-go v0.9.0 adds what this change needs:
 
@@ -125,12 +125,13 @@ later.
 A dry run has no outcome, so it is not evidence. When the user asked for no
 spend, the debate agents make no go-decide calls at all.
 
-### ax-go `main` now, v0.9.0 before push
+### ax-go v0.9.0
 
-`go.mod` pins an ax-go pseudo-version from `main` while the v0.9.0 release
-pull request (rshade/ax-go#279) is open. Before the branch is pushed, it moves
-to `v0.9.0`, and `go mod tidy`, the tests and the goldens run again. The bump
-also brings go-sdk v1.8.0.
+Development ran against an ax-go pseudo-version from `main` while the v0.9.0
+release pull request (rshade/ax-go#279) was open. The branch moved to the
+`v0.9.0` tag before it was pushed, and the tests and goldens ran again with no
+change. go-sdk v1.8.0, which v0.9.0 needs, reached `main` separately through
+Renovate.
 
 ### One schema bump covers both causes
 
@@ -147,8 +148,10 @@ metadata.
   …"): instructions arrived verbatim, and a strategic question was still
   answered directly. A directive pointer ("do not answer from your own
   judgment first: read …") made it read the skill and follow it, and a small
-  choice was still answered directly. The results are in task 5.2, and are
-  recorded on the pull request and rshade/ax-go#270.
+  choice was still answered directly. Putting the pointer first and naming
+  the shapes a choice arrives in raised the read rate to 29 of 30. The
+  results are in task 5.2 and on rshade/ax-go#270. #48 makes the check
+  repeatable.
 - [A sub-agent may not inherit the MCP tools] → The prompt block says to use
   the `go-decide` binary when the tools are absent, and to argue without
   either. The cap applies to both.
@@ -157,8 +160,6 @@ metadata.
   name the mode in the request to skip it.
 - [A served skill can lag the repository] → It is the skill of the binary's
   own build, which is the version that matches the tools it describes.
-- [The pseudo-version is pushed by mistake] → The tasks put the version swap
-  before the push step, and `go.mod` is checked in the final verification.
 
 ## Migration Plan
 
