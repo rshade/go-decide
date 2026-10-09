@@ -43,6 +43,7 @@ var goldenCases = []struct {
 	{"schema", 1, []string{"__schema"}, "", "", http.StatusOK},
 	{"eval.report", 2, evalGoldenFlags, "", evalAnswer("a", 0.95), http.StatusOK},
 	{"eval.dryrun", 2, append([]string{"--dry-run"}, evalGoldenFlags...), "", "", http.StatusOK},
+	{"schema.mcp", 6, []string{"__schema", "--as=mcp"}, "", "", http.StatusOK},
 }
 
 var evalGoldenFlags = []string{"eval", "--decisions", "testdata/eval/decisions.json", "--truth", "testdata/eval/truth.json"}

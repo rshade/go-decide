@@ -211,6 +211,11 @@ options, it calls `ask` (or the MCP tool `go-decide-ask`) and reads
 The pre-screen is skipped when `go-decide` is absent or the user asks for
 the full debate. The skill file is `skills/decide/SKILL.md`.
 
+You do not have to install the skill to use it. `go-decide mcp-server` serves
+it as a resource, `go-decide://skills/decide/SKILL.md`, and tells a connected
+agent when to read it. It also offers a `decide` prompt, which Claude Code
+shows as `/mcp__go-decide__decide`.
+
 ## Know the limits
 
 - **Decided does not mean approved.** The model ranks options well but its
