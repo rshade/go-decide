@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.1](https://github.com/rshade/go-decide/compare/v0.1.0...v0.1.1) (2026-10-09)
+
+
+### Features
+
+* **cli:** serve ask and score as MCP tools with mcp-server ([788ff74](https://github.com/rshade/go-decide/commit/788ff743eb3abe342a316c4d911a0ab860249e42)), closes [#21](https://github.com/rshade/go-decide/issues/21)
+* **skill:** pre-screen the decide debate with ask ([4a988fd](https://github.com/rshade/go-decide/commit/4a988fdbdf27e0a07791fa94dd655f1127679dd6)), closes [#22](https://github.com/rshade/go-decide/issues/22) [#7](https://github.com/rshade/go-decide/issues/7)
+
+
+### Bug Fixes
+
+* **cli:** refuse the spec input over MCP ([3f92e8d](https://github.com/rshade/go-decide/commit/3f92e8d0714a4eeeab85eb9456a87f50b1f90823)), closes [#21](https://github.com/rshade/go-decide/issues/21)
+* **deps:** update module github.com/modelcontextprotocol/go-sdk to v1.8.0 ([68b30e6](https://github.com/rshade/go-decide/commit/68b30e61036f2764104edc31407e673f6fb67489))
+
+
+### Documentation
+
+* move pick-issue and CLAUDE.md to the pull request flow ([#33](https://github.com/rshade/go-decide/issues/33)) ([d0afbdd](https://github.com/rshade/go-decide/commit/d0afbdd1201c74c9b7ccc7b5fb2845aa09afeb35)), closes [#20](https://github.com/rshade/go-decide/issues/20)
+
 ## 0.1.0 (2026-10-07)
 
 
