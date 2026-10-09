@@ -19,7 +19,7 @@ skill prompt).
 
 ## Commands
 
-Go 1.27.1 is required (`ax-go` v0.7.0 needs it). There is no Makefile.
+Go 1.27.1 is required (`ax-go` v0.9.0 needs it). There is no Makefile.
 
 ```sh
 go build ./...
@@ -91,7 +91,12 @@ test:
   tools, `go-decide-ask` and `go-decide-score`; `eval` is excluded with
   `mcp.Exclude` because one call is one paid request per decision. Outcomes
   over MCP are results, never errors, and `Run` ignores the recorded outcome
-  for `mcp-server`, so the server's exit code is never 10 or 11.
+  for `mcp-server`, so the server's exit code is never 10 or 11. The server
+  also serves the `decide` skill (`internal/cli/skill.go`): each embedded file
+  as a static resource at `go-decide://skills/decide/<path>`, a short
+  `decide` prompt, and `mcp.WithInstructions` text that points at `SKILL.md`.
+  The instructions and those descriptions come from `SKILL.md`'s frontmatter
+  `description`, so editing it changes `__schema` and needs a schema bump.
 
 `decision`, `jevclient` and `clefclient` may import only `ax-go`'s `contract`
 package, and `eval` only those plus `decision`; `internal/cli/deps_test.go`
@@ -110,12 +115,15 @@ and `Rate` classify failures with the backend's `Classify` (default
 `.agents/skills/`, which is repo workflow tooling). Its optional
 pre-screen calls `ask` or the MCP tool `go-decide-ask` and branches on
 `decided`, `uncertain` and `escalate`. A decided result skips the debate
-and is not approval. The debate itself stays in that prompt.
+and is not approval. The debate itself stays in that prompt. The `skills`
+package embeds those files for the binary (`//go:embed` cannot reach a parent
+directory from `internal/cli`), so the repository file is the only copy, and
+it may import only the standard library.
 
 ### Output schema versioning
 
 Golden files in `internal/cli/testdata/golden/` pin every outcome and the
-`__schema` output per version (`*.v<N>.json`; the current version is 5). Any
+`__schema` output per version (`*.v<N>.json`; the current version is 6). Any
 change to output shape, including a new command in `__schema`, needs a
 `SchemaVersion` bump plus a new set of golden files, not an edit to the
 existing ones. Each golden case has a `since` version; a new command starts at

@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -469,5 +470,107 @@ func TestMCPServesOverStandardInputAndOutputByDefault(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		_ = cmd.Process.Kill()
 		t.Error("mcp-server did not exit after its input closed")
+	}
+}
+
+// startMCPWithoutCredentials starts the server, then clears every backend
+// credential, so anything that still works needed none.
+func startMCPWithoutCredentials(t *testing.T) *mcpServer {
+	t.Helper()
+	s := startMCP(t)
+	for _, name := range []string{"TYPESAFE_API_KEY", "CLOUDFLARE_AUTH_TOKEN", "CLOUDFLARE_ACCOUNT_ID"} {
+		t.Setenv(name, "")
+	}
+	return s
+}
+
+func TestMCPServesTheSkillAsResources(t *testing.T) {
+	s := startMCPWithoutCredentials(t)
+	list, err := s.session.ListResources(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("listing resources: %v", err)
+	}
+	listed := map[string]string{}
+	for _, r := range list.Resources {
+		listed[r.URI] = r.MIMEType
+	}
+	base, err := url.Parse(skillURI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reference := base.ResolveReference(&url.URL{Path: "references/debate-prompts.md"}).String()
+	for _, uri := range []string{skillURI, reference} {
+		if mime, ok := listed[uri]; !ok || mime != "text/markdown" {
+			t.Errorf("resource %s listed=%v mime=%q, want listed as text/markdown; got %v", uri, ok, mime, listed)
+		}
+	}
+
+	for uri, file := range map[string]string{skillURI: "SKILL.md", reference: "references/debate-prompts.md"} {
+		read, err := s.session.ReadResource(context.Background(), &sdk.ReadResourceParams{URI: uri})
+		if err != nil {
+			t.Fatalf("reading %s: %v", uri, err)
+		}
+		want, err := os.ReadFile(filepath.Join("..", "..", "skills", "decide", filepath.FromSlash(file)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(read.Contents) != 1 || read.Contents[0].Text != string(want) {
+			t.Errorf("reading %s did not return skills/decide/%s byte for byte", uri, file)
+		}
+	}
+	if hits := s.fake.hits.Load(); hits != 0 {
+		t.Errorf("serving the skill sent %d backend requests, want 0", hits)
+	}
+}
+
+func TestMCPUnknownSkillResourceFails(t *testing.T) {
+	s := startMCPWithoutCredentials(t)
+	if _, err := s.session.ReadResource(context.Background(), &sdk.ReadResourceParams{URI: "go-decide://skills/decide/MISSING.md"}); err == nil {
+		t.Error("reading an unlisted go-decide:// URI succeeded, want a protocol error")
+	}
+}
+
+func TestMCPInstructionsPointAtTheSkill(t *testing.T) {
+	s := startMCPWithoutCredentials(t)
+	instructions := s.session.InitializeResult().Instructions
+	if !strings.Contains(instructions, skillURI) {
+		t.Errorf("instructions %q do not name %s", instructions, skillURI)
+	}
+	if !strings.Contains(strings.ToLower(instructions), "paid") {
+		t.Errorf("instructions %q do not say a call is paid", instructions)
+	}
+	if !strings.Contains(instructions, "Use when choosing between alternatives") {
+		t.Errorf("instructions %q do not carry the skill's own description", instructions)
+	}
+}
+
+func TestMCPDecidePromptPointsAtTheSkill(t *testing.T) {
+	s := startMCPWithoutCredentials(t)
+	got, err := s.session.GetPrompt(context.Background(), &sdk.GetPromptParams{
+		Name:      "decide",
+		Arguments: map[string]string{"decision": "Postgres or SQLite for the cache"},
+	})
+	if err != nil {
+		t.Fatalf("getting the decide prompt: %v", err)
+	}
+	if len(got.Messages) != 1 || got.Messages[0].Role != "user" {
+		t.Fatalf("decide prompt rendered %d messages, want one user message", len(got.Messages))
+	}
+	text, ok := got.Messages[0].Content.(*sdk.TextContent)
+	if !ok {
+		t.Fatalf("decide prompt content is %T, want text", got.Messages[0].Content)
+	}
+	if !strings.Contains(text.Text, "Postgres or SQLite for the cache") || !strings.Contains(text.Text, skillURI) {
+		t.Errorf("decide prompt %q lacks the decision or %s", text.Text, skillURI)
+	}
+	if strings.Contains(text.Text, "# Adversarial Consensus Protocol") {
+		t.Error("decide prompt carries the skill text; it should only point at the resource")
+	}
+
+	if _, err := s.session.GetPrompt(context.Background(), &sdk.GetPromptParams{Name: "decide"}); err == nil {
+		t.Error("decide prompt without decision rendered, want invalid params")
+	}
+	if hits := s.fake.hits.Load(); hits != 0 {
+		t.Errorf("the decide prompt sent %d backend requests, want 0", hits)
 	}
 }

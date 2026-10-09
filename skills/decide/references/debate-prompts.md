@@ -6,6 +6,45 @@ Templates for the three-agent adversarial debate. Adapt placeholders
 (`[bracketed text]`) to the specific decision. Include all gathered
 context in each agent prompt — agents run in isolation.
 
+## go-decide block
+
+Append this block to an agent prompt only when go-decide is available
+and the run's model evidence mode allows calls in that round: Round 1
+in `informed` mode, Round 2 in either mode. Leave it out when the user
+asked for no spend.
+
+```text
+GO-DECIDE (optional evidence):
+You may call the MCP tool go-decide-ask (a choice between options) or
+go-decide-score (a rating against ordered levels). If those tools are
+absent, use `go-decide ask` or `go-decide score` on the command line.
+If neither exists, argue without them.
+
+- Make at most 2 calls in this round, ask and score together. Each
+  call is a paid request.
+- Frame your own question: state is the context and constraints,
+  instructions is the one-line question, options or levels are yours.
+- Use the backend the user named, or the default. Never retry a
+  failure against the other backend, and never pass a credential.
+- Cite a result as evidence, never as the verdict:
+  [go-decide: backend, outcome, choice or leading option, confidence
+  as a ranking score]. A result that favours your position is one
+  argument for it, not a win.
+- confidence ranks options. It is not a probability, and it can
+  change between identical calls. "leading" is not a choice.
+- A failed call is not an outcome. Say it failed and argue without
+  it.
+```
+
+In `informed` mode, also add the pre-screen result to each Round 1
+prompt:
+
+```text
+PRE-SCREEN RESULT (evidence, not a verdict):
+go-decide [backend]: [outcome], [choice or leading option],
+confidence [value] as a ranking score.
+```
+
 ## Round 1: Position papers
 
 ### Advocate A
