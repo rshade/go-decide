@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.1.1](https://github.com/rshade/go-decide/compare/v0.1.0...v0.1.1) (2026-10-11)
+
+
+### Features
+
+* **cli:** serve ask and score as MCP tools with mcp-server ([788ff74](https://github.com/rshade/go-decide/commit/788ff743eb3abe342a316c4d911a0ab860249e42)), closes [#21](https://github.com/rshade/go-decide/issues/21)
+* **mcp:** serve the decide skill over mcp-server ([7a6bea6](https://github.com/rshade/go-decide/commit/7a6bea64d695816a6dd4aa56558646d12c7e7185)), closes [#22](https://github.com/rshade/go-decide/issues/22)
+* **skill:** pre-screen the decide debate with ask ([4a988fd](https://github.com/rshade/go-decide/commit/4a988fdbdf27e0a07791fa94dd655f1127679dd6)), closes [#22](https://github.com/rshade/go-decide/issues/22) [#7](https://github.com/rshade/go-decide/issues/7)
+* **skill:** show what was asked when citing go-decide ([6fc3ec8](https://github.com/rshade/go-decide/commit/6fc3ec8a2b94cb96d3f93cdb660ff5805804779b)), closes [#22](https://github.com/rshade/go-decide/issues/22)
+
+
+### Bug Fixes
+
+* **ci:** build with Go 1.27.2 from go.mod only ([345551d](https://github.com/rshade/go-decide/commit/345551d2b52a30e8a4a779726a624b15cbfb3571))
+* **cli:** refuse the spec input over MCP ([3f92e8d](https://github.com/rshade/go-decide/commit/3f92e8d0714a4eeeab85eb9456a87f50b1f90823)), closes [#21](https://github.com/rshade/go-decide/issues/21)
+* **deps:** update module github.com/modelcontextprotocol/go-sdk to v1.8.0 ([68b30e6](https://github.com/rshade/go-decide/commit/68b30e61036f2764104edc31407e673f6fb67489))
+* **deps:** update module github.com/rshade/ax-go to v0.9.0 ([b0c9f4e](https://github.com/rshade/go-decide/commit/b0c9f4ecb62cc7573aaba38fc5f352558f1107c7))
+* **mcp:** lead the server instructions with the decide pointer ([b4f6781](https://github.com/rshade/go-decide/commit/b4f6781b6b0e5caf28d187f3bb47025e6b0e43bb)), closes [#22](https://github.com/rshade/go-decide/issues/22)
+
+
+### Documentation
+
+* move pick-issue and CLAUDE.md to the pull request flow ([#33](https://github.com/rshade/go-decide/issues/33)) ([d0afbdd](https://github.com/rshade/go-decide/commit/d0afbdd1201c74c9b7ccc7b5fb2845aa09afeb35)), closes [#20](https://github.com/rshade/go-decide/issues/20)
+* **openspec:** archive serve-decide-skill-over-mcp ([9c1e0a0](https://github.com/rshade/go-decide/commit/9c1e0a05e5492a0415726b88ffbeedcea228051e)), closes [#22](https://github.com/rshade/go-decide/issues/22)
+* **openspec:** record end-to-end decide skill trials ([0b79752](https://github.com/rshade/go-decide/commit/0b79752c658f917f312d1fbe3822415054fe9114)), closes [#22](https://github.com/rshade/go-decide/issues/22)
+
 ## 0.1.0 (2026-10-07)
 
 
