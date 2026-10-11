@@ -10,16 +10,22 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    # setup-go owns Go here. A mise-managed Go would export its GOROOT, and
+    # setup-go only changes PATH, so a mise pin that differs from go.mod
+    # pairs one release's go command with another's compiler and fails
+    # every package ("compile: version ... does not match go tool version").
+    env:
+      MISE_DISABLE_TOOLS: go
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      # mise.toml pins the same Go as go.mod, plus golangci-lint, Node,
-      # markdownlint-cli2, commitlint and OpenSpec.
-      # setup-go then selects the toolchain from go.mod, so a go.mod bump is
-      # what CI builds with even if the mise pin lags.
+      # mise.toml pins golangci-lint, Node, markdownlint-cli2, commitlint and
+      # OpenSpec (and Go for local use, skipped here by MISE_DISABLE_TOOLS).
+      # setup-go selects the toolchain from go.mod, so a go.mod bump is what
+      # CI builds with whatever the mise Go pin says.
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
 

@@ -19,7 +19,11 @@ skill prompt).
 
 ## Commands
 
-Go 1.27.1 is required (`ax-go` v0.9.0 needs it). There is no Makefile.
+Go 1.27.2 is required (`go.mod`; `ax-go` v0.9.0 needs at least 1.27.1).
+There is no Makefile. CI builds with the Go in `go.mod` (setup-go); `ci.yml` sets
+`MISE_DISABLE_TOOLS=go` because a mise Go exports its own `GOROOT`, and a pin
+that differs from `go.mod` fails every package with "compile: version ... does
+not match go tool version". The mise Go pin is for local use only.
 
 ```sh
 go build ./...
