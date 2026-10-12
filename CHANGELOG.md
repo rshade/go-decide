@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/rshade/go-decide/compare/v0.1.1...v0.1.2) (2026-10-12)
+
+
+### Features
+
+* **record:** keep an opt-in decision log for outcome labelling ([#51](https://github.com/rshade/go-decide/issues/51)) ([4bc3386](https://github.com/rshade/go-decide/commit/4bc33865aaaea4d4a49274c2642227eff5530ae6)), closes [#40](https://github.com/rshade/go-decide/issues/40)
+
 ## [0.1.1](https://github.com/rshade/go-decide/compare/v0.1.0...v0.1.1) (2026-10-11)
 
 
