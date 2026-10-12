@@ -29,8 +29,12 @@ thresholds stay until #6.
   Implemented as the OpenSpec change `serve-decide-skill-over-mcp` on ax-go
   v0.9.0: `mcp-server` serves the skill as resources, a `decide` prompt and
   instructions, and debate agents may cite go-decide as capped evidence.
-- [ ] #40 Record decisions at decision time for later outcome labelling [M]
-  (the corpus #9 needs; the `decide` skill writes the log)
+- [x] #40 Record decisions at decision time for later outcome labelling [M]
+  Implemented as the OpenSpec change
+  `openspec/changes/archive/2026-10-11-record-decision-log`: opt-in
+  `record` commands and MCP tools write the log at `DECIDE_LOG`, the `decide`
+  skill records each decision before any answer, and `eval --log` scores the
+  labelled ones (schema version 7).
 - [ ] #47 Confirm the `@` mention and `decide` prompt in interactive Claude
   Code [S]
 

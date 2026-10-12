@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/kataras/jev"
 	"github.com/rshade/ax-go/contract"
@@ -31,6 +33,15 @@ type run struct {
 
 type envelope[T any] struct {
 	Data T `json:"data"`
+}
+
+// TestMain clears DECIDE_LOG so a log exported in the developer's shell never
+// reaches a test; tests that record set it with t.Setenv.
+func TestMain(m *testing.M) {
+	if err := os.Unsetenv(decideLogEnv); err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
 }
 
 func choiceAnswer(choice string, confidence float64) string {
@@ -68,11 +79,18 @@ func executeAt(t *testing.T, baseURL, stdin string, args []string) run {
 
 	var stdout, stderr bytes.Buffer
 	code := Run(context.Background(), args, Env{
-		Stdin:   strings.NewReader(stdin),
-		Stdout:  &stdout,
-		Stderr:  &stderr,
-		Getenv:  func(string) string { return "" },
+		Stdin:  strings.NewReader(stdin),
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Getenv: func(key string) string {
+			if key == decideLogEnv {
+				return os.Getenv(key)
+			}
+			return ""
+		},
 		Version: goldenVersion,
+		Now:     func() time.Time { return fixedNow },
+		Rand:    rand.NewChaCha8([32]byte{7}),
 	})
 	return run{stdout: stdout.String(), stderr: stderr.String(), code: code}
 }

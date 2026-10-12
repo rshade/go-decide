@@ -4,9 +4,11 @@ package cli
 
 import (
 	"context"
+	"crypto/rand"
 	"io"
 	"os"
 	"sync/atomic"
+	"time"
 
 	"github.com/kataras/jev"
 	ax "github.com/rshade/ax-go"
@@ -38,6 +40,21 @@ type Env struct {
 	NewClient func(...jevclient.Option) (*jev.Client, error)
 	// NewClefClient builds the client for --backend clef.
 	NewClefClient func(...clefclient.Option) (*jev.Client, error)
+	// Now stamps decision log records. It falls back to time.Now.
+	Now func() time.Time
+	// Rand draws decision log ids. It falls back to crypto/rand.
+	Rand io.Reader
+}
+
+// withClock fills Now and Rand, the fields only the decision log uses.
+func (e Env) withClock() Env {
+	if e.Now == nil {
+		e.Now = time.Now
+	}
+	if e.Rand == nil {
+		e.Rand = rand.Reader
+	}
+	return e
 }
 
 func (e Env) withDefaults() Env {
@@ -60,7 +77,7 @@ func (e Env) withDefaults() Env {
 		e.NewClefClient = clefclient.NewClient
 	}
 	e.Version = ax.ResolveVersion(e.Version)
-	return e
+	return e.withClock()
 }
 
 // Run executes the command line in args and returns the process exit code. It
@@ -129,6 +146,7 @@ func newRoot(env Env, outcome *outcomeRecorder) (*cobra.Command, error) {
 		newAskCommand(env, outcome, &serving),
 		newScoreCommand(env, outcome, &serving),
 		eval,
+		newRecordCommand(env),
 		newSchemaCommand(root),
 		server,
 	)

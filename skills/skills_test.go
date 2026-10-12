@@ -10,7 +10,7 @@ import (
 )
 
 func TestDecideFilesMatchTheRepository(t *testing.T) {
-	for _, name := range []string{"SKILL.md", "references/debate-prompts.md"} {
+	for _, name := range []string{"SKILL.md", "references/debate-prompts.md", "references/decision-log.md"} {
 		t.Run(name, func(t *testing.T) {
 			embedded, err := fs.ReadFile(skills.Decide(), name)
 			if err != nil {

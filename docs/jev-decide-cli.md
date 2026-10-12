@@ -19,10 +19,13 @@ go-decide score --state "checkout fails" --level minor="cosmetic" \
                 --level major="cannot buy"
 go-decide eval  --decisions testdata/decisions.json \
                 --truth testdata/decisions_truth.json
+go-decide record decision --title "Cache backend" \
+                --context "Reads dominate." --instructions "Which cache?" \
+                --option postgres="Unlogged table" --option sqlite="Local file"
 go-decide __schema
 ```
 
-All three commands take the same thresholds: `--floor` (default 0.5) and
+`ask`, `score` and `eval` take the same thresholds: `--floor` (default 0.5) and
 `--confident` (default 0.9). The defaults are placeholders until issue #6
 tunes them on real decisions. The tokens come from the environment, never a
 flag. `--help` says the same.
@@ -160,13 +163,73 @@ written. `--dry-run` validates both files and prints `backend`, `decisions`,
 The bundled set is 40 synthetic, constraint-shaped decisions. Treat it as a
 smoke test. Tuning the thresholds needs past decisions with known outcomes.
 
+### eval on a decision log
+
+`--log file` reads a decision log written by `record` (see "Decision log")
+instead of `--decisions` and `--truth`. It uses each decision that has an
+outcome: the decision as first recorded and the latest outcome for it, in the
+order the decisions were recorded. Unlabelled decisions are skipped. The
+same validation applies, `--log` together with `--decisions` or `--truth`
+exits 2, and so does a log with no labelled decision.
+
+```sh
+go-decide eval --dry-run --log "$DECIDE_LOG"   # validate, free
+go-decide eval --log "$DECIDE_LOG"             # one paid request per decision
+```
+
+## Decision log
+
+`record` keeps the decision log the `decide` skill writes, so real decisions
+can be scored later with `eval --log`. Recording is opt-in: go-decide reads and
+writes the log only when its own `DECIDE_LOG` environment variable names the
+file. Without it, every `record` command prints `recording: false`, exits 0 and
+touches no file. No flag or MCP input can choose the file. For the MCP server,
+set the variable in the server's environment:
+
+```sh
+export DECIDE_LOG="${XDG_STATE_HOME:-$HOME/.local/state}/decide/decisions.jsonl"
+claude mcp add go-decide -e DECIDE_LOG="$DECIDE_LOG" -- go-decide mcp-server
+```
+
+| Command | What it does |
+| --- | --- |
+| `record decision` | Appends a decision before any answer: `--title`, `--context`, `--constraint` (repeated), `--instructions` and two or more `--option name=description`, checked by the rules `eval` applies. Prints the new `id`. |
+| `record run` | Appends the run of a recorded `--id`: `--path` `fast`, `debate` or `stopped`, and exactly one of `--pre-screen` (the `ask` envelope's `data` as JSON, every field present), `--pre-screen-error` and `--pre-screen-skipped`. A debate adds `--recommendation`, `--evidence-mode`, `--go-decide-calls` and `--citation` (repeated JSON, every field present). A missing or null field exits 2, never a recorded zero. |
+| `record outcome` | Appends the operator's label for `--id`: `--class dominant` with `--correct-option`, or `contested` with none, and `--why`. |
+| `record pending` | Lists decisions older than `--older-than-days` (default 30) with no outcome, as they were recorded. It never prints a run. |
+
+`decision`, `run` and `outcome` print `schema_version`, `recording` and `kind`,
+and, once written, the `id` and the `log` path. `pending` prints
+`schema_version`, `recording`, `older_than_days` and `decisions`.
+With `--dry-run`, `decision`, `run` and `outcome` check the input against the
+log as a write would, including the `--yes` check, then print
+`dry_run: true` and the `log` path with no `id`. They write nothing and create
+no directory. With recording off, a dry run prints `dry_run: true` and
+`recording: false`.
+
+Each call appends one JSON line with `v`, `kind`, `id`, `recorded_at` and the
+call's `trace_id`. Nothing rewrites a line; a later outcome for an id replaces
+an earlier one only when `eval --log` reads the log. The file is created `0600`
+and any new directory `0700`. A log inside a git working tree is written only
+with `--yes`, checked from the nearest directory on the path that exists.
+Invalid input exits 2 and writes nothing, and a failed write exits 1 and never
+reports the record as written. Every call reads the whole log first, and a
+log over 16 MiB exits 2 naming `DECIDE_LOG`; start a new file before then.
+Appends from one process are serialised; a network filesystem is not
+supported. `skills/decide/references/decision-log.md`
+describes the record format.
+
 ## MCP server
 
 `go-decide mcp-server` serves the commands to agents as Model Context Protocol
 tools, so an agent can call them without a shell. It serves `go-decide-ask` and
 `go-decide-score`; each takes the command's flags as inputs, including
 `backend` and `dry-run`. `eval` is not served, because one call sends one paid
-request per decision. It stays on the command line.
+request per decision. It stays on the command line. The four `record`
+subcommands are served as `go-decide-record-decision`, `go-decide-record-run`,
+`go-decide-record-outcome` and `go-decide-record-pending`. They send no request,
+need no credential, and use only the log named by the server's own
+`DECIDE_LOG`.
 
 An `uncertain` or `escalate` outcome is a normal result: the payload is the
 usual envelope, with `outcome` saying which, and the call is not flagged as an
@@ -237,7 +300,7 @@ A client configuration, for a client that uses the common `mcpServers` shape:
 
 | Code | Meaning |
 | --- | --- |
-| 0 | Decided, or an `eval` report was printed. |
+| 0 | Decided, or an `eval` report or a `record` result was printed. |
 | 1 | Internal failure, or a response that broke the contract. |
 | 2 | Invalid input, including any spec that fails validation. |
 | 3 | Network failure or timeout. |
@@ -251,12 +314,15 @@ are left free.
 
 ## Output version
 
-`schema_version` is 6. Version 2 added `eval`. Version 3 renamed the tool to
+`schema_version` is 7. Version 2 added `eval`. Version 3 renamed the tool to
 `go-decide`. Version 4 added `backend` to every output. Version 5 added the
 `mcp-server` command to `__schema`; nothing else moved. Version 6 added the
 `decide` prompt and the skill resources to `__schema`, along with the
 `--strict` flag and the `warnings_as_errors` error code from `ax-go`. The
-`ask`, `score` and `eval` outputs did not change.
+`ask`, `score` and `eval` outputs did not change. Version 7 added the
+`record` commands and their outputs, `eval --log`, and the
+`references/decision-log.md` skill resource; the `ask`, `score` and `eval`
+outputs did not change.
 `go-decide __schema` prints that integer as its top-level `schema_version`,
 with `tool` set to `go-decide`.
 `schema_version` pins those shapes, one golden file per version under

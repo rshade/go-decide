@@ -96,11 +96,21 @@ test:
   `mcp.Exclude` because one call is one paid request per decision. Outcomes
   over MCP are results, never errors, and `Run` ignores the recorded outcome
   for `mcp-server`, so the server's exit code is never 10 or 11. The server
-  also serves the `decide` skill (`internal/cli/skill.go`): each embedded file
+  also serves the four `record` subcommands as `go-decide-record-decision`,
+  `-run`, `-outcome` and `-pending`, which take no path and send no request,
+  and the `decide` skill (`internal/cli/skill.go`): each embedded file
   as a static resource at `go-decide://skills/decide/<path>`, a short
   `decide` prompt, and `mcp.WithInstructions` text that points at `SKILL.md`.
   The instructions and those descriptions come from `SKILL.md`'s frontmatter
   `description`, so editing it changes `__schema` and needs a schema bump.
+- `record decision|run|outcome|pending` (`internal/cli/record.go`, store in
+  `recordlog.go`) is the only persistence in go-decide: an opt-in JSONL
+  decision log at the path in `DECIDE_LOG`, read through `Env.Getenv` and
+  never from a flag or tool input. Unset means `recording: false` and no file
+  touched. Lines are validated with `eval`'s helpers, appended with one
+  `O_APPEND` write (not the ax logger, which swallows write errors), `0600`,
+  and refused inside a git work tree without `--yes`. `eval --log` reads the
+  labelled ones. `Env.Now` and `Env.Rand` make ids and times testable.
 
 `decision`, `jevclient` and `clefclient` may import only `ax-go`'s `contract`
 package, and `eval` only those plus `decision`; `internal/cli/deps_test.go`
@@ -127,7 +137,7 @@ it may import only the standard library.
 ### Output schema versioning
 
 Golden files in `internal/cli/testdata/golden/` pin every outcome and the
-`__schema` output per version (`*.v<N>.json`; the current version is 6). Any
+`__schema` output per version (`*.v<N>.json`; the current version is 7). Any
 change to output shape, including a new command in `__schema`, needs a
 `SchemaVersion` bump plus a new set of golden files, not an edit to the
 existing ones. Each golden case has a `since` version; a new command starts at

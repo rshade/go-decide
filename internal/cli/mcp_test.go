@@ -112,7 +112,13 @@ func startMCP(t *testing.T, extra ...string) *mcpServer {
 	go func() {
 		done <- Run(ctx, args, Env{
 			Stdin: strings.NewReader(""), Stdout: &bytes.Buffer{}, Stderr: stderr,
-			Getenv: func(string) string { return "" }, Version: goldenVersion,
+			Getenv: func(key string) string {
+				if key == decideLogEnv {
+					return os.Getenv(key)
+				}
+				return ""
+			},
+			Version: goldenVersion,
 		})
 	}()
 
@@ -498,14 +504,17 @@ func TestMCPServesTheSkillAsResources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reference := base.ResolveReference(&url.URL{Path: "references/debate-prompts.md"}).String()
-	for _, uri := range []string{skillURI, reference} {
+	files := map[string]string{skillURI: "SKILL.md"}
+	for _, ref := range []string{"references/debate-prompts.md", "references/decision-log.md"} {
+		files[base.ResolveReference(&url.URL{Path: ref}).String()] = ref
+	}
+	for uri := range files {
 		if mime, ok := listed[uri]; !ok || mime != "text/markdown" {
 			t.Errorf("resource %s listed=%v mime=%q, want listed as text/markdown; got %v", uri, ok, mime, listed)
 		}
 	}
 
-	for uri, file := range map[string]string{skillURI: "SKILL.md", reference: "references/debate-prompts.md"} {
+	for uri, file := range files {
 		read, err := s.session.ReadResource(context.Background(), &sdk.ReadResourceParams{URI: uri})
 		if err != nil {
 			t.Fatalf("reading %s: %v", uri, err)
@@ -572,5 +581,68 @@ func TestMCPDecidePromptPointsAtTheSkill(t *testing.T) {
 	}
 	if hits := s.fake.hits.Load(); hits != 0 {
 		t.Errorf("the decide prompt sent %d backend requests, want 0", hits)
+	}
+}
+
+func TestMCPServesTheRecordToolsWithoutAPathInput(t *testing.T) {
+	s := startMCPWithoutCredentials(t)
+	res, err := s.session.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := map[string]bool{}
+	for _, tool := range res.Tools {
+		if !strings.HasPrefix(tool.Name, "go-decide-record-") {
+			continue
+		}
+		found[tool.Name] = true
+		raw, err := json.Marshal(tool.InputSchema)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, field := range []string{`"log"`, `"decide-log"`, `"file"`, `"spec"`} {
+			if strings.Contains(string(raw), field) {
+				t.Errorf("%s takes %s, want no input that names a file", tool.Name, field)
+			}
+		}
+	}
+	for _, name := range []string{"go-decide-record-decision", "go-decide-record-run", "go-decide-record-outcome", "go-decide-record-pending"} {
+		if !found[name] {
+			t.Errorf("tool %s is not listed; got %v", name, found)
+		}
+	}
+	if found["go-decide-record"] {
+		t.Error("the record group is listed as a tool, want only its subcommands")
+	}
+}
+
+func TestMCPRecordWritesOnlyTheServersLogAndCostsNothing(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "decisions.jsonl")
+	t.Setenv(decideLogEnv, path)
+	s := startMCPWithoutCredentials(t)
+
+	res := s.call(t, "go-decide-record-decision", map[string]any{
+		"title":        "Cache backend",
+		"context":      "Reads dominate.",
+		"instructions": "Which cache should the service use?",
+		"option":       []string{"postgres=Unlogged table", "sqlite=Local file"},
+	})
+	if res.IsError {
+		t.Fatalf("record decision failed: %s", resultText(t, res))
+	}
+	var out envelope[RecordOutput]
+	if err := json.Unmarshal([]byte(resultText(t, res)), &out); err != nil || !out.Data.Recording || out.Data.Log != path {
+		t.Fatalf("result %s, want recording to %s (err %v)", resultText(t, res), path, err)
+	}
+	if got := len(readLog(t, path)); got != 1 {
+		t.Errorf("server log has %d lines, want 1", got)
+	}
+
+	pending := s.call(t, "go-decide-record-pending", map[string]any{"older-than-days": 0})
+	if pending.IsError || !strings.Contains(resultText(t, pending), out.Data.ID) {
+		t.Errorf("record pending = %s, want the new decision", resultText(t, pending))
+	}
+	if hits := s.fake.hits.Load(); hits != 0 {
+		t.Errorf("recording sent %d backend requests, want 0", hits)
 	}
 }

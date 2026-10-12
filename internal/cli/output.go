@@ -1,10 +1,14 @@
 package cli
 
-import "github.com/rshade/go-decide/decision"
+import (
+	"encoding/json"
+
+	"github.com/rshade/go-decide/decision"
+)
 
 // SchemaVersion is the version of the JSON shape of every command's output.
 // Any change to a shape needs a new version and a new golden file.
-const SchemaVersion = 6
+const SchemaVersion = 7
 
 // ThresholdsOutput echoes the thresholds a run used.
 type ThresholdsOutput struct {
@@ -133,4 +137,33 @@ func dryRunOutput(backend, kind string, entries []decision.SpecEntry, th decisio
 		names[i] = entry.Name
 	}
 	return DryRunOutput{SchemaVersion: SchemaVersion, Backend: backend, DryRun: true, Kind: kind, Names: names, Thresholds: thresholdsOutput(th)}
+}
+
+// RecordOutput is the data of the record decision, run and outcome envelopes.
+// With recording off, Recording is false, ID and Log are absent, and nothing
+// was written. A dry run has DryRun true and no ID, and wrote nothing.
+type RecordOutput struct {
+	SchemaVersion int    `json:"schema_version"`
+	Recording     bool   `json:"recording"`
+	DryRun        bool   `json:"dry_run,omitempty"`
+	Kind          string `json:"kind"`
+	ID            string `json:"id,omitempty"  ax:"nondeterministic"`
+	Log           string `json:"log,omitempty"`
+}
+
+// PendingOutput is the data of the record pending envelope: decisions older
+// than the threshold with no outcome yet. It never carries a run.
+type PendingOutput struct {
+	SchemaVersion int               `json:"schema_version"`
+	Recording     bool              `json:"recording"`
+	OlderThanDays int               `json:"older_than_days"`
+	Decisions     []PendingDecision `json:"decisions"`
+}
+
+// PendingDecision is a decision as it was recorded, before any answer.
+type PendingDecision struct {
+	ID           string          `json:"id"`
+	RecordedAt   string          `json:"recorded_at"`
+	Instructions string          `json:"instructions"`
+	Decision     json.RawMessage `json:"decision"`
 }
