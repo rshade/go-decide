@@ -16,7 +16,7 @@ import (
 
 func newEvalCommand(env Env) *cobra.Command {
 	var in inputFlags
-	var decisionsPath, truthPath, cacheDir string
+	var decisionsPath, truthPath, logPath, cacheDir string
 
 	cmd := &cobra.Command{
 		Use:   "eval",
@@ -26,7 +26,8 @@ func newEvalCommand(env Env) *cobra.Command {
 			"It measures; it never approves. Both files are validated before any request.\n" +
 			fmt.Sprintf("Output schema_version: %d. Exit code 0 when the report is printed.", SchemaVersion),
 		Example: `  go-decide eval --decisions testdata/decisions.json --truth testdata/decisions_truth.json
-  go-decide eval --decisions past.json --truth past_truth.json --cache-dir .eval-cache`,
+  go-decide eval --decisions past.json --truth past_truth.json --cache-dir .eval-cache
+  go-decide eval --dry-run --log "$DECIDE_LOG"`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
@@ -41,7 +42,15 @@ func newEvalCommand(env Env) *cobra.Command {
 			if err := b.checkInstructions(ctx, in.instructions); err != nil {
 				return err
 			}
-			items, err := loadEvalSet(ctx, decisionsPath, truthPath, in.instructions)
+			var items []evalItem
+			switch {
+			case logPath != "" && (decisionsPath != "" || truthPath != ""):
+				return newValidationError(ctx, "--log replaces --decisions and --truth; give one or the other", "--log")
+			case logPath != "":
+				items, err = loadEvalLog(ctx, logPath, in.instructions)
+			default:
+				items, err = loadEvalSet(ctx, decisionsPath, truthPath, in.instructions)
+			}
 			if err != nil {
 				return err
 			}
@@ -66,6 +75,7 @@ func newEvalCommand(env Env) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&decisionsPath, "decisions", "", "the decision set, as a JSON file in the format of testdata/decisions.json")
 	cmd.Flags().StringVar(&truthPath, "truth", "", "the truth file, as a JSON file in the format of testdata/decisions_truth.json")
+	cmd.Flags().StringVar(&logPath, "log", "", "a decision log written by record, instead of --decisions and --truth; only labelled decisions are used")
 	cmd.Flags().StringVar(&in.instructions, "instructions", defaultEvalInstructions, "what to decide, asked of every decision")
 	in.backend.register(cmd)
 	in.registerThresholds(cmd)

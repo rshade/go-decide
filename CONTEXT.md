@@ -25,7 +25,10 @@ ships `ask`, `score` and `eval`.
   prompt in `skills/decide/`. The library and CLI supply the fast-path
   pre-screen (`ask`) and its typed result, and they hold no debate,
   persistence or orchestration logic. `mcp-server` serves the skill's files
-  as text resources; serving a prompt is not running it.
+  as text resources; serving a prompt is not running it. The one exception
+  to "no persistence" is the opt-in decision log: only the `record` commands
+  write it, only `record pending` and `eval --log` read it, and only when
+  `DECIDE_LOG` in go-decide's own environment names the file.
 - **No auto-approval.** Jev ranks well but is not calibrated (Brier 0.236),
   and clef separates contested decisions less sharply.
   Output must never authorize an action without a human or a higher-cost
@@ -96,7 +99,10 @@ A proposed feature violates the boundaries if it:
    escalate cases.
 2. Spends API budget before validating input.
 3. Adds debate, persistence or orchestration logic to the Go library or
-   CLI. The prompt in `skills/decide/` is where that logic belongs.
+   CLI. The prompt in `skills/decide/` is where that logic belongs. The
+   only allowed persistence is the opt-in decision log: written by
+   `record` only at the path in `DECIDE_LOG`, never one a flag or tool
+   input chooses, and read by `record pending` and `eval --log <file>`.
 4. Embeds a credential or an endpoint other than TypeSafe's or Cloudflare's.
 5. Changes an output schema without a version bump and golden test update.
 6. Falls back from one backend to the other.

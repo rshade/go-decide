@@ -45,6 +45,9 @@ with the options you're weighing, or ask me directly?"
 
 When in doubt, proceed — err on the side of running the debate.
 
+If the user asks to review or label the decision log, go to "Label past
+decisions" below instead. Input turned away here is never recorded.
+
 ## Phase 0: Research and frame the decision
 
 ### Step 0.1: Gather context
@@ -80,8 +83,9 @@ conditions:
 - Is the question genuine (not leading or presupposing an answer)?
 - Are there at least two meaningfully distinct outcomes?
 
-If all conditions pass, present the brief and run the optional
-fast-path pre-screen. Start Phase 1 only when that section says to.
+If all conditions pass, present the brief, record the decision (Step
+0.5), and run the optional fast-path pre-screen. Start Phase 1 only
+when that section says to.
 
 ```text
 Decision: [one-line summary]
@@ -95,7 +99,26 @@ Include the `Model evidence` line only when go-decide is available.
 See "go-decide during the debate" below.
 
 If any condition fails, present the brief and ask the user whether to
-reframe or proceed as-is. Proceeding as-is runs the pre-screen too.
+reframe or proceed as-is. Proceeding as-is records the decision and
+runs the pre-screen too.
+
+### Step 0.5: Record the decision
+
+Only when go-decide is available. Call `go-decide-record-decision`
+now, before the pre-screen or Round 1, with the brief as it stands:
+the title, context, constraints, instructions and every option the
+pre-screen will send. See `references/decision-log.md` for the inputs.
+The record holds nothing a run produces, because it is the evidence of
+what was known before the answer.
+
+- `recording: false` means recording is off. Say nothing about it.
+- Otherwise tell the user the returned `id` and `log` in one line, and
+  keep the id for "Record the run".
+- A validation error naming `--yes` means the log is inside a git
+  working tree. Tell the user it could be committed there, and call
+  again with `yes` only after they confirm.
+- Skip the record, and say no record was written, when the user asks
+  not to record this decision.
 
 ## Optional fast-path pre-screen
 
@@ -154,18 +177,21 @@ the error envelope flagged as an error. Exit codes 10 and 11 do not
 exist there, and the server staying up does not mean the call
 succeeded. Show the error and stop. Do not start Phase 1 unless the
 user then asks for the debate. Do not treat the failure as escalate,
-and do not fill in a choice.
+and do not fill in a choice. Record the run with path `stopped` and
+the error code (see "Record the run").
 
 **decided.** Present `choice`, `confidence`, `probabilities` and
 `thresholds`. Say it is clear enough to skip the debate, and that it
 is not approval. Skip Phase 1, Phase 2 and Phase 3. There was no
-debate to summarize. Do not act on the choice. The user can still
-demand the debate, and the user has the final say.
+debate to summarize. Do not act on the choice. Record the run with
+path `fast`. The user can still demand the debate, and the user has
+the final say.
 
 **uncertain.** Present `leading`, `confidence`, `probabilities` and
 `thresholds`. Call `leading` the leading option, never a choice. This
 case is for a person. Ask whether to stop or to run the debate. Do
-not start Phase 1 until they answer.
+not start Phase 1 until they answer. If they stop, record the run with
+path `stopped`.
 
 **escalate.** Present `leading` and `confidence`, then run Phase 1
 unchanged. `leading` is the leading option, not a choice and not a
@@ -294,6 +320,8 @@ Show the user:
 6. The model evidence mode (`blind` or `informed`) and how many
    go-decide calls the agents made, when go-decide was available
 
+Then record the run with path `debate`.
+
 ### Step 3.2: Ask about persistence
 
 Ask the user if they want to save the consensus. Determine the
@@ -305,6 +333,43 @@ appropriate file based on the decision type:
 - Strategy → appropriate project document
 - Or a new file if none fits
 
+## Record the run
+
+Only when Step 0.5 wrote a `decision` record. Each time a run ends,
+call `go-decide-record-run` with that `id` and the `path`, following
+`references/decision-log.md`:
+
+- **`fast`**: the pre-screen decided and the debate was skipped.
+- **`stopped`**: the user stopped after an uncertain result or a failed
+  call. A failure carries its error code and no outcome.
+- **`debate`**: Phase 3 presented the consensus. Add the Moderator's
+  recommendation, the model evidence mode when go-decide was
+  available, the debate agents' go-decide call count, and one citation
+  per go-decide result an agent cited, taken from its citation block.
+
+Pass the pre-screen's envelope `data` as `pre-screen`, its error code
+as `pre-screen-error`, or why it did not run as `pre-screen-skipped`.
+A debate the user starts after a `fast` or `stopped` run gets a second
+`go-decide-record-run` call; go-decide never changes a written line.
+
+## Label past decisions
+
+Run this when the user asks to review or label the decision log,
+following the labelling steps in `references/decision-log.md`. Call
+`go-decide-record-pending`, with `older-than-days` when the user names
+a threshold (30 by default). With `recording: false`, say recording is
+off and how to turn it on, and stop. For each listed decision, show
+only what the listing holds and ask how it turned out, then call
+`go-decide-record-outcome`.
+
+- **Never show a run before the label is recorded**, from the log or
+  from memory. The pick, confidence or recommendation would anchor the
+  label.
+- The label is the user's: `dominant` with the option that proved
+  right, or `contested` when reasonable people would still disagree,
+  and why. Never suggest or invent one.
+- Write nothing for a decision the user skips.
+
 ## Orchestrator guidelines
 
 - **Run the pre-screen before Phase 1** when `go-decide` is available
@@ -312,6 +377,9 @@ appropriate file based on the decision type:
   `data.outcome`. A failure is not an escalate.
 - **Never choose the model evidence mode yourself.** Use the one the
   user named, or ask before Round 1. Report it with the results.
+- **Record the decision before any answer**, through the record
+  tools, and stay silent when recording is off. Never show a run while
+  the user labels its outcome.
 - **Always launch all 3 agents per round in a single step** (parallel)
 - **Never edit the agents' arguments** — present them faithfully
 - **The Moderator's Round 2 consensus is the binding output** — but

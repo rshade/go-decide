@@ -55,7 +55,12 @@ func loadEvalSet(ctx context.Context, decisionsPath, truthPath, instructions str
 	if err != nil {
 		return nil, err
 	}
+	return pairEvalSet(ctx, decisions, truths, instructions)
+}
 
+// pairEvalSet matches each decision with its truth entry, one to one, and
+// builds the questions in the order of the decisions.
+func pairEvalSet(ctx context.Context, decisions []evalDecision, truths []evalTruth, instructions string) ([]evalItem, error) {
 	byID := make(map[string]evalTruth, len(truths))
 	for _, tr := range truths {
 		byID[tr.ID] = tr
@@ -89,6 +94,31 @@ func loadEvalSet(ctx context.Context, decisionsPath, truthPath, instructions str
 }
 
 func buildEvalItem(ctx context.Context, d evalDecision, tr evalTruth, instructions string) (evalItem, error) {
+	field := func(sub string) string { return entryField("decisions", d.ID, sub) }
+	entries, err := optionEntries(ctx, d, field)
+	if err != nil {
+		return evalItem{}, err
+	}
+
+	class, err := eval.ParseClass(tr.Class)
+	if err != nil {
+		return evalItem{}, evalFieldError(ctx, entryField("truth", d.ID, "class"), "%q is neither dominant nor contested", tr.Class)
+	}
+	correct, err := correctOption(ctx, entryField("truth", d.ID, "correct_option"), class, tr.CorrectOption, entries)
+	if err != nil {
+		return evalItem{}, err
+	}
+
+	question, err := decisionQuestion(ctx, d, entries, instructions, field)
+	if err != nil {
+		return evalItem{}, err
+	}
+	return evalItem{id: d.ID, class: class, correct: correct, question: question}, nil
+}
+
+// optionEntries reads the name and description of each option. field names
+// the part of the decision at fault in an error.
+func optionEntries(ctx context.Context, d evalDecision, field func(string) string) ([]decision.SpecEntry, error) {
 	entries := make([]decision.SpecEntry, len(d.Options))
 	for i, raw := range d.Options {
 		var opt struct {
@@ -96,20 +126,16 @@ func buildEvalItem(ctx context.Context, d evalDecision, tr evalTruth, instructio
 			Description string `json:"description"`
 		}
 		if err := json.Unmarshal(raw, &opt); err != nil || opt.Name == "" {
-			return evalItem{}, evalFieldError(ctx, entryField("decisions", d.ID, fmt.Sprintf("options[%d].name", i)), "an option needs a name")
+			return nil, evalFieldError(ctx, field(fmt.Sprintf("options[%d].name", i)), "an option needs a name")
 		}
 		entries[i] = decision.SpecEntry{Name: opt.Name, Description: opt.Description}
 	}
+	return entries, nil
+}
 
-	class, err := eval.ParseClass(tr.Class)
-	if err != nil {
-		return evalItem{}, evalFieldError(ctx, entryField("truth", d.ID, "class"), "%q is neither dominant nor contested", tr.Class)
-	}
-	correct, err := correctOption(ctx, d.ID, class, tr.CorrectOption, entries)
-	if err != nil {
-		return evalItem{}, err
-	}
-
+// decisionQuestion builds the choice question eval asks for d, which also
+// applies every check ask applies to a spec.
+func decisionQuestion(ctx context.Context, d evalDecision, entries []decision.SpecEntry, instructions string, field func(string) string) (decision.Question[string], error) {
 	spec := decision.Spec{
 		State: map[string]any{
 			"title":       d.Title,
@@ -122,18 +148,19 @@ func buildEvalItem(ctx context.Context, d evalDecision, tr evalTruth, instructio
 	}
 	question, err := spec.Question()
 	if err != nil {
-		field := "question"
+		sub := "question"
 		var fe *decision.FieldError
 		if errors.As(err, &fe) {
-			field = fe.Field
+			sub = fe.Field
 		}
-		return evalItem{}, evalFieldError(ctx, entryField("decisions", d.ID, field), "%v", err)
+		return decision.Question[string]{}, evalFieldError(ctx, field(sub), "%v", err)
 	}
-	return evalItem{id: d.ID, class: class, correct: correct, question: question}, nil
+	return question, nil
 }
 
-func correctOption(ctx context.Context, id string, class eval.Class, given *string, entries []decision.SpecEntry) (string, error) {
-	field := entryField("truth", id, "correct_option")
+// correctOption checks a truth entry's correct option against its class and
+// the decision's options. field names the correct option in an error.
+func correctOption(ctx context.Context, field string, class eval.Class, given *string, entries []decision.SpecEntry) (string, error) {
 	if class == eval.Contested {
 		if given != nil {
 			return "", evalFieldError(ctx, field, "a contested decision has no correct option, got %q", *given)
@@ -218,4 +245,56 @@ func entryField(file, id, field string) string {
 
 func evalFieldError(ctx context.Context, field, format string, args ...any) error {
 	return newValidationError(ctx, field+": "+fmt.Sprintf(format, args...), field)
+}
+
+// loadEvalLog builds the eval set from a decision log written by record: each
+// decision that has an outcome, with its first decision line and its last
+// outcome line, in the order the decisions were recorded. It sends nothing.
+func loadEvalLog(ctx context.Context, path, instructions string) ([]evalItem, error) {
+	const flag = "--log"
+	if _, err := os.Stat(path); err != nil {
+		return nil, evalFieldError(ctx, flag, "%v", err)
+	}
+	lines, err := readLogLines(path)
+	if err != nil {
+		return nil, evalFieldError(ctx, flag, "%s: %v", path, err)
+	}
+
+	var order []string
+	decisionLines := map[string]json.RawMessage{}
+	truthLines := map[string]json.RawMessage{}
+	for _, l := range lines {
+		switch l.Kind {
+		case kindDecision:
+			if _, seen := decisionLines[l.ID]; !seen {
+				decisionLines[l.ID] = l.Decision
+				order = append(order, l.ID)
+			}
+		case kindOutcome:
+			truthLines[l.ID] = l.Truth
+		}
+	}
+
+	var decisions []evalDecision
+	var truths []evalTruth
+	for _, id := range order {
+		truthRaw, ok := truthLines[id]
+		if !ok {
+			continue
+		}
+		var d evalDecision
+		if err := decodeStrict(string(decisionLines[id]), &d); err != nil {
+			return nil, evalFieldError(ctx, entryField("log", id, "decision"), "%v", err)
+		}
+		var tr evalTruth
+		if err := decodeStrict(string(truthRaw), &tr); err != nil {
+			return nil, evalFieldError(ctx, entryField("log", id, "truth"), "%v", err)
+		}
+		decisions = append(decisions, d)
+		truths = append(truths, tr)
+	}
+	if len(decisions) == 0 {
+		return nil, evalFieldError(ctx, flag, "%s has no labelled decision; record an outcome first", path)
+	}
+	return pairEvalSet(ctx, decisions, truths, instructions)
 }

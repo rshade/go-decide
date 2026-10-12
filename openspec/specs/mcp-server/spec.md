@@ -83,10 +83,12 @@ SHALL validate and return without a request.
 
 ### Requirement: Tool calls never read files
 
-A tool call SHALL NOT make the server read a file or its standard input. A
-`spec` input SHALL be refused with a validation error that names the field,
-before any request is sent, and the error SHALL NOT echo any file content.
-Decisions are given inline.
+A tool call SHALL NOT make the server read a file or its standard input that
+the call names. A `spec` input SHALL be refused with a validation error that
+names the field, before any request is sent, and the error SHALL NOT echo any
+file content. Decisions are given inline. The only file a tool call may read
+or write is the decision log named by the server process's `DECIDE_LOG`, and
+only through a `go-decide-record-*` tool.
 
 #### Scenario: Spec file refused
 
@@ -98,6 +100,12 @@ Decisions are given inline.
 
 - **WHEN** `go-decide ask --spec decision.json` runs on the command line
 - **THEN** the spec is read and the question is asked as before
+
+#### Scenario: Record tools use only the server's log
+
+- **WHEN** a client calls `go-decide-record-pending`
+- **THEN** the server reads only the file named by its own `DECIDE_LOG`, or
+  no file when it is unset
 
 ### Requirement: Credentials never travel in tool calls
 
@@ -149,9 +157,10 @@ shipped in the build, byte for byte, without a backend request.
 #### Scenario: Resources are listed
 
 - **WHEN** a client lists the resources of `go-decide mcp-server`
-- **THEN** `go-decide://skills/decide/SKILL.md` and
-  `go-decide://skills/decide/references/debate-prompts.md` are listed with
-  type `text/markdown`
+- **THEN** `go-decide://skills/decide/SKILL.md`,
+  `go-decide://skills/decide/references/debate-prompts.md` and
+  `go-decide://skills/decide/references/decision-log.md` are listed with type
+  `text/markdown`
 
 #### Scenario: Resource content matches the repository file
 
@@ -161,7 +170,8 @@ shipped in the build, byte for byte, without a backend request.
 
 #### Scenario: Relative references resolve
 
-- **WHEN** the skill names `references/debate-prompts.md`
+- **WHEN** the skill names `references/debate-prompts.md` or
+  `references/decision-log.md`
 - **THEN** that path resolved against `go-decide://skills/decide/SKILL.md` is
   a listed resource
 
@@ -220,3 +230,23 @@ send a request to any backend, and SHALL NOT need backend credentials.
 - **WHEN** the server runs with no Jev or Cloudflare credentials set
 - **THEN** a client can list and read the resources and get the prompt, and
   no request reaches a backend
+
+### Requirement: The decision log is served as tools
+
+The `mcp-server` command SHALL serve `record decision`, `record run`,
+`record outcome` and `record pending` as the MCP tools
+`go-decide-record-decision`, `go-decide-record-run`,
+`go-decide-record-outcome` and `go-decide-record-pending`, with their flags as
+inputs. A record call SHALL make no backend request and need no credential.
+
+#### Scenario: Record tools are listed
+
+- **WHEN** a client lists the tools of `go-decide mcp-server`
+- **THEN** the four `go-decide-record-*` tools are listed beside
+  `go-decide-ask` and `go-decide-score`
+
+#### Scenario: Recording costs nothing
+
+- **WHEN** a client calls `go-decide-record-decision` with no credentials set
+- **THEN** the call succeeds or fails on its own input, and no request reaches
+  a backend

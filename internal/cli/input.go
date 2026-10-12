@@ -114,7 +114,7 @@ func parseEntries(ctx context.Context, flag string, values []string) ([]decision
 	for i, v := range values {
 		name, description, _ := strings.Cut(v, "=")
 		if name == "" {
-			return nil, validationError(ctx, fmt.Errorf("--%s %q: expected name=description with a name", flag, v))
+			return nil, newValidationError(ctx, fmt.Sprintf("%s %q: expected name=description with a name", flag, v), flag)
 		}
 		entries[i] = decision.SpecEntry{Name: name, Description: description}
 	}

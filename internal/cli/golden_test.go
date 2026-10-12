@@ -16,7 +16,7 @@ import (
 //nolint:gochecknoglobals // the golden update flag must be package-scoped for the flag package
 var updateGolden = flag.Bool("update", false, "rewrite the golden files for the current schema version")
 
-var maskedFields = regexp.MustCompile(`"(trace_id|span_id|idempotency_key)":"[^"]*"`)
+var maskedFields = regexp.MustCompile(`"(trace_id|span_id|idempotency_key|log)":"[^"]*"`)
 
 func mask(b string) string {
 	return maskedFields.ReplaceAllString(b, `"$1":"<masked>"`)
@@ -31,20 +31,30 @@ var goldenCases = []struct {
 	stdin  string
 	body   string
 	status int
+	// decideLog sets DECIDE_LOG: "" leaves it unset, tempLog is a new file in
+	// a temporary directory, and anything else is used as it is.
+	decideLog string
 }{
-	{"ask.decided", 1, askFlags, "", choiceAnswer("ship", 0.95), http.StatusOK},
-	{"ask.uncertain", 1, askFlags, "", choiceAnswer("hold", 0.7), http.StatusOK},
-	{"ask.escalate", 1, askFlags, "", choiceAnswer("hold", 0.3), http.StatusOK},
-	{"score.decided", 1, scoreFlags, "", scoreAnswer(1.9, 0.95), http.StatusOK},
-	{"score.uncertain", 1, scoreFlags, "", scoreAnswer(1.2, 0.7), http.StatusOK},
-	{"score.escalate", 1, scoreFlags, "", scoreAnswer(0.4, 0.3), http.StatusOK},
-	{"ask.dryrun", 1, append([]string{"--dry-run"}, askFlags...), "", "", http.StatusOK},
-	{"score.dryrun", 1, append([]string{"--dry-run"}, scoreFlags...), "", "", http.StatusOK},
-	{"schema", 1, []string{"__schema"}, "", "", http.StatusOK},
-	{"eval.report", 2, evalGoldenFlags, "", evalAnswer("a", 0.95), http.StatusOK},
-	{"eval.dryrun", 2, append([]string{"--dry-run"}, evalGoldenFlags...), "", "", http.StatusOK},
-	{"schema.mcp", 6, []string{"__schema", "--as=mcp"}, "", "", http.StatusOK},
+	{"ask.decided", 1, askFlags, "", choiceAnswer("ship", 0.95), http.StatusOK, ""},
+	{"ask.uncertain", 1, askFlags, "", choiceAnswer("hold", 0.7), http.StatusOK, ""},
+	{"ask.escalate", 1, askFlags, "", choiceAnswer("hold", 0.3), http.StatusOK, ""},
+	{"score.decided", 1, scoreFlags, "", scoreAnswer(1.9, 0.95), http.StatusOK, ""},
+	{"score.uncertain", 1, scoreFlags, "", scoreAnswer(1.2, 0.7), http.StatusOK, ""},
+	{"score.escalate", 1, scoreFlags, "", scoreAnswer(0.4, 0.3), http.StatusOK, ""},
+	{"ask.dryrun", 1, append([]string{"--dry-run"}, askFlags...), "", "", http.StatusOK, ""},
+	{"score.dryrun", 1, append([]string{"--dry-run"}, scoreFlags...), "", "", http.StatusOK, ""},
+	{"schema", 1, []string{"__schema"}, "", "", http.StatusOK, ""},
+	{"eval.report", 2, evalGoldenFlags, "", evalAnswer("a", 0.95), http.StatusOK, ""},
+	{"eval.dryrun", 2, append([]string{"--dry-run"}, evalGoldenFlags...), "", "", http.StatusOK, ""},
+	{"schema.mcp", 6, []string{"__schema", "--as=mcp"}, "", "", http.StatusOK, ""},
+	{"record.decision", 7, recordDecisionFlags, "", "", http.StatusOK, tempLog},
+	{"record.off", 7, recordDecisionFlags, "", "", http.StatusOK, ""},
+	{"record.dryrun", 7, append([]string{"--dry-run"}, recordDecisionFlags...), "", "", http.StatusOK, tempLog},
+	{"eval.log", 7, []string{"eval", "--dry-run", "--log", "testdata/record/labelled.jsonl"}, "", "", http.StatusOK, ""},
+	{"record.pending", 7, []string{"record", "pending", "--older-than-days", "0"}, "", "", http.StatusOK, "testdata/record/pending.jsonl"},
 }
+
+const tempLog = "<temp>"
 
 var evalGoldenFlags = []string{"eval", "--decisions", "testdata/eval/decisions.json", "--truth", "testdata/eval/truth.json"}
 
@@ -58,6 +68,13 @@ func TestOutputMatchesTheGoldenFileForTheCurrentVersion(t *testing.T) {
 			t.Fatalf("%s starts at version %d, after SchemaVersion %d", tc.name, tc.since, SchemaVersion)
 		}
 		t.Run(tc.name, func(t *testing.T) {
+			switch tc.decideLog {
+			case "":
+			case tempLog:
+				t.Setenv(decideLogEnv, filepath.Join(t.TempDir(), "decisions.jsonl"))
+			default:
+				t.Setenv(decideLogEnv, tc.decideLog)
+			}
 			r := execute(t, tc.stdin, tc.args, tc.status, tc.body)
 			got := mask(r.stdout)
 			path := goldenPath(tc.name, SchemaVersion)

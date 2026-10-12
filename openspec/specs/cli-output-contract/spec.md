@@ -76,6 +76,15 @@ output fields that vary between identical calls as non-deterministic.
   only, never the resource content, and golden files for version 6 exist for
   every output with the version 5 files unchanged
 
+#### Scenario: Schema lists the decision log
+
+- **WHEN** `__schema` and `__schema --as=mcp` are run at schema version 7
+- **THEN** they also list the `record decision`, `record run`,
+  `record outcome` and `record pending` commands with their output version,
+  `eval`'s `--log` flag, and the `references/decision-log.md` resource by
+  metadata only, and golden files for version 7 exist for every output,
+  including each `record` output, with the version 6 files unchanged
+
 ### Requirement: A dry run validates without asking
 
 The system SHALL honor the shared `--dry-run` flag on `ask`, `score` and `eval`
