@@ -3,7 +3,7 @@ module github.com/rshade/go-decide
 go 1.27.2
 
 require (
-	github.com/kataras/jev v0.1.0
+	github.com/kataras/jev v0.2.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/rshade/ax-go v0.9.0
 	github.com/spf13/cobra v1.10.2
