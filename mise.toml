@@ -4,7 +4,7 @@ go = "1.27.3"
 # Runs the npm tools below. Pinned so CI and local runs match.
 node = "24.22.2"
 # CI installs this pin. 2.14.0 matches the finfocus plugins.
-golangci-lint = "2.14.0"
+golangci-lint = "2.15.0"
 # Release binary building, used by .github/workflows/release.yml.
 goreleaser = "2.19.0"
 "npm:@fission-ai/openspec" = "1.15.0"
