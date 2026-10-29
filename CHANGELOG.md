@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2](https://github.com/rshade/go-decide/compare/v0.1.1...v0.1.2) (2026-10-29)
+
+
+### Features
+
+* **record:** keep an opt-in decision log for outcome labelling ([#51](https://github.com/rshade/go-decide/issues/51)) ([4bc3386](https://github.com/rshade/go-decide/commit/4bc33865aaaea4d4a49274c2642227eff5530ae6)), closes [#40](https://github.com/rshade/go-decide/issues/40)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/kataras/jev to v0.2.0 ([#57](https://github.com/rshade/go-decide/issues/57)) ([db9b8e4](https://github.com/rshade/go-decide/commit/db9b8e4c19d35320779cd06c2ef851a97328ceea))
+* **deps:** update module github.com/rshade/ax-go to v0.10.0 ([#64](https://github.com/rshade/go-decide/issues/64)) ([e46192d](https://github.com/rshade/go-decide/commit/e46192dcdb2077c7782228057a6ad8bac7e06c89))
+
 ## [0.1.1](https://github.com/rshade/go-decide/compare/v0.1.0...v0.1.1) (2026-10-11)
 
 
