@@ -27,7 +27,7 @@ jobs:
       # setup-go selects the toolchain from go.mod, so a go.mod bump is what
       # CI builds with whatever the mise Go pin says.
       - name: Install tools from mise.toml
-        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+        uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
 
       - name: Set up Go from go.mod
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
