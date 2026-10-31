@@ -7,6 +7,6 @@ node = "24.22.2"
 golangci-lint = "2.15.0"
 # Release binary building, used by .github/workflows/release.yml.
 goreleaser = "2.19.0"
-"npm:@fission-ai/openspec" = "1.15.0"
+"npm:@fission-ai/openspec" = "1.16.0"
 "npm:markdownlint-cli2" = "0.24.0"
 "npm:@commitlint/cli" = "21.2.4"
