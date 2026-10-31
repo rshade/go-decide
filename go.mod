@@ -7,7 +7,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/rshade/ax-go v0.10.0
 	github.com/spf13/cobra v1.10.2
-	go.yaml.in/yaml/v3 v3.0.5
+	go.yaml.in/yaml/v3 v3.0.6
 )
 
 require (
